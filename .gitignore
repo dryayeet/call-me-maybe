@@ -2,3 +2,4 @@ fac/
 face-classification/
 hi.py
 .claude/
+__pycache__/
