@@ -5,21 +5,17 @@ import argparse
 import mediapipe as mp
 import cv2
 from concurrent.futures import ThreadPoolExecutor
+from affect_fusion import AffectFusionEngine
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-vw", "--isVideoWriter", type=bool, default=False)
 args = vars(ap.parse_args())
 
-emotions = {
-    0: {"emotion": "Angry", "color": (193, 69, 42)},
-    1: {"emotion": "Disgust", "color": (164, 175, 49)},
-    2: {"emotion": "Fear", "color": (40, 52, 155)},
-    3: {"emotion": "Happy", "color": (23, 164, 28)},
-    4: {"emotion": "Sad", "color": (164, 93, 23)},
-    5: {"emotion": "Suprise", "color": (218, 229, 97)},
-    6: {"emotion": "Neutral", "color": (108, 72, 200)}
+# Base emotion classes (direct model output, always displayed)
+BASE_EMOTIONS = {
+    0: "Angry", 1: "Disgust", 2: "Fear", 3: "Happy",
+    4: "Sad", 5: "Surprise", 6: "Neutral"
 }
-
 
 # Face detection
 BaseOptions = mp.tasks.BaseOptions
@@ -46,6 +42,9 @@ vaInput = vaInterp.get_input_details()
 vaOutput = vaInterp.get_output_details()
 vaTargetSize = tuple(vaInput[0]['shape'][1:3])
 
+# Fusion engine
+engine = AffectFusionEngine()
+
 
 def run_emotion(grayFace):
     face = cv2.resize(grayFace, emotTargetSize)
@@ -57,7 +56,7 @@ def run_emotion(grayFace):
     emotInterp.set_tensor(emotInput[0]['index'], face)
     emotInterp.invoke()
     pred = emotInterp.get_tensor(emotOutput[0]['index'])
-    return np.argmax(pred), np.max(pred)
+    return np.argmax(pred), np.max(pred), pred[0]
 
 
 def run_va(colorFace):
@@ -73,6 +72,53 @@ def run_va(colorFace):
     return pred[0][0], pred[0][1]
 
 
+def draw_va_hud(frame, result):
+    size = 150
+    pad = 10
+    hx = frame.shape[1] - size - pad  # top-right corner
+    hy = pad
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # Semi-transparent background
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (hx, hy), (hx + size, hy + size + 25), (30, 30, 30), -1)
+    cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+
+    # Title
+    cv2.putText(frame, "Valence-Arousal", (hx + 18, hy + 14),
+                font, 0.38, (200, 200, 200), 1, cv2.LINE_AA)
+
+    # Grid area below title
+    gy = hy + 20
+    gs = size
+    cx, cy = hx + gs // 2, gy + gs // 2
+
+    # Axes
+    cv2.line(frame, (hx + 2, cy), (hx + gs - 2, cy), (70, 70, 70), 1)
+    cv2.line(frame, (cx, gy + 2), (cx, gy + gs - 2), (70, 70, 70), 1)
+
+    # Quadrant labels
+    fs, fc = 0.25, (100, 100, 100)
+    cv2.putText(frame, "Pleasant+", (cx + 4, gy + 12), font, fs, fc, 1, cv2.LINE_AA)
+    cv2.putText(frame, "Unpleasant+", (hx + 2, gy + 12), font, fs, fc, 1, cv2.LINE_AA)
+    cv2.putText(frame, "Pleasant-", (cx + 4, gy + gs - 5), font, fs, fc, 1, cv2.LINE_AA)
+    cv2.putText(frame, "Unpleasant-", (hx + 2, gy + gs - 5), font, fs, fc, 1, cv2.LINE_AA)
+
+    # VA dot
+    v, a = result.valence_smooth, result.arousal_smooth
+    dx = int(cx + v * (gs // 2))
+    dy = int(cy - a * (gs // 2))
+    dx = int(np.clip(dx, hx + 3, hx + gs - 3))
+    dy = int(np.clip(dy, gy + 3, gy + gs - 3))
+    cv2.circle(frame, (dx, dy), 5, result.plutchik_color, -1)
+    cv2.circle(frame, (dx, dy), 5, (255, 255, 255), 1)
+
+    # Numeric readout below grid
+    txt = f"V:{v:+.2f}  A:{a:+.2f}"
+    cv2.putText(frame, txt, (hx + 18, gy + gs + 18),
+                font, 0.35, (180, 180, 180), 1, cv2.LINE_AA)
+
+
 cap = cv2.VideoCapture(0)
 
 if args["isVideoWriter"] == True:
@@ -83,9 +129,11 @@ if args["isVideoWriter"] == True:
                                  (capWidth, capHeight))
 
 executor = ThreadPoolExecutor(max_workers=2)
+last_result = None
 
 while True:
     ret, frame = cap.read()
+    frame = cv2.flip(frame, 1)
     frame = cv2.resize(frame, (720, 480))
 
     if not ret:
@@ -95,58 +143,87 @@ while True:
     rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgbFrame)
     results = face_detection.detect(mp_image)
-    for detection in results.detections:
-        bbox = detection.bounding_box
-        x = max(0, bbox.origin_x)
-        y = max(0, bbox.origin_y)
-        w = bbox.width
-        h = bbox.height
 
-        grayFace = grayFrame[y:y + h, x:x + w]
-        colorFace = frame[y:y + h, x:x + w]
+    if not results.detections:
+        engine.reset()
+    else:
+        for detection in results.detections:
+            bbox = detection.bounding_box
+            x = max(0, bbox.origin_x)
+            y = max(0, bbox.origin_y)
+            w = bbox.width
+            h = bbox.height
 
-        if grayFace.size == 0 or colorFace.size == 0:
-            continue
+            grayFace = grayFrame[y:y + h, x:x + w]
+            colorFace = frame[y:y + h, x:x + w]
 
-        # Run both models in parallel
-        emot_future = executor.submit(run_emotion, grayFace.copy())
-        va_future = executor.submit(run_va, colorFace.copy())
+            if grayFace.size == 0 or colorFace.size == 0:
+                continue
 
-        try:
-            emotion_idx, emotion_prob = emot_future.result()
-            valence, arousal = va_future.result()
-        except:
-            continue
+            # Run both models in parallel
+            emot_future = executor.submit(run_emotion, grayFace.copy())
+            va_future = executor.submit(run_va, colorFace.copy())
 
-        color = emotions[emotion_idx]['color']
-        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+            try:
+                emotion_idx, emotion_prob, softmax_probs = emot_future.result()
+                valence, arousal = va_future.result()
+            except:
+                continue
 
-        # Emotion label
-        cv2.line(frame, (x, y + h), (x + 20, y + h + 20),
-                 color, thickness=2)
-        cv2.rectangle(frame, (x + 20, y + h + 20), (x + 160, y + h + 40),
-                      color, -1)
-        emot_label = emotions[emotion_idx]['emotion']
-        if emotion_prob > 0.36:
-            cv2.putText(frame, f"{emot_label} ({emotion_prob:.0%})",
-                        (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-        else:
-            cv2.putText(frame, "---",
-                        (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                        (255, 255, 255), 1, cv2.LINE_AA)
+            # Fuse results
+            result = engine.update(emotion_idx, emotion_prob, softmax_probs,
+                                   valence, arousal)
+            last_result = result
 
-        # VA label
-        cv2.rectangle(frame, (x + 20, y + h + 42), (x + 160, y + h + 62),
-                      (60, 60, 60), -1)
-        cv2.putText(frame, f"V:{valence:.2f} A:{arousal:.2f}",
-                    (x + 25, y + h + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                    (255, 255, 255), 1, cv2.LINE_AA)
+            # Bounding box (dimmed if unreliable)
+            color = result.plutchik_color
+            if not result.is_reliable:
+                color = tuple(c // 2 for c in color)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
+            # --- Face labels (directly below bbox) ---
+            font = cv2.FONT_HERSHEY_SIMPLEX
+
+            # Line 1: Base emotion + confidence (always shown)
+            base_name = BASE_EMOTIONS[result.emotion_idx]
+            reliability = "*" if not result.is_reliable else ""
+            line1 = f"{base_name} {result.emotion_prob:.0%}{reliability}"
+            tw1 = cv2.getTextSize(line1, font, 0.45, 1)[0][0]
+            box_w = tw1 + 14
+            label_y = y + h + 2
+            cv2.rectangle(frame, (x, label_y), (x + box_w, label_y + 20),
+                          color, -1)
+            cv2.putText(frame, line1, (x + 5, label_y + 15),
+                        font, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+            # Line 2: Plutchik intensity word (only if adds info)
+            next_y = label_y + 22
+            if result.plutchik_petal and result.plutchik_label != base_name:
+                line2 = f"~ {result.plutchik_label}"
+                tw2 = cv2.getTextSize(line2, font, 0.38, 1)[0][0]
+                cv2.rectangle(frame, (x, next_y), (x + tw2 + 14, next_y + 18),
+                              (50, 50, 50), -1)
+                cv2.putText(frame, line2, (x + 5, next_y + 14),
+                            font, 0.38, (200, 200, 200), 1, cv2.LINE_AA)
+                next_y += 20
+
+            # Line 3: Dyad (only if detected)
+            if result.dyad_name:
+                line3 = f"+ {result.dyad_name}"
+                tw3 = cv2.getTextSize(line3, font, 0.38, 1)[0][0]
+                cv2.rectangle(frame, (x, next_y), (x + tw3 + 14, next_y + 18),
+                              (60, 45, 30), -1)
+                cv2.putText(frame, line3, (x + 5, next_y + 14),
+                            font, 0.38, (200, 220, 255), 1, cv2.LINE_AA)
+
+    # Draw VA HUD (top-right, last processed face)
+    if last_result is not None:
+        draw_va_hud(frame, last_result)
 
     if args["isVideoWriter"] == True:
         videoWrite.write(frame)
 
-    cv2.imshow("Emotion + Valence-Arousal", frame)
+    cv2.imshow("Real-Time Affect Analysis", frame)
     k = cv2.waitKey(1) & 0xFF
     if k == 27:
         break
