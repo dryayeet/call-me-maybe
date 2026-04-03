@@ -6,8 +6,9 @@ This project implements a real-time facial affect analysis system that performs 
 
 1. **Categorical Emotion Classification** — Assigns each detected face one of seven discrete emotion labels (Angry, Disgust, Fear, Happy, Sad, Surprise, Neutral) using a mini Xception network trained on FER-2013.
 2. **Dimensional Affect Regression** — Predicts continuous Valence (pleasure–displeasure) and Arousal (activation–deactivation) values using a MobileNetV2 network trained on AffectNet.
+3. **Affect Fusion** — Cross-validates both outputs using Russell's Circumplex Model and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and prediction reliability.
 
-Both models execute in parallel per detected face using multithreaded inference, and results are overlaid on the video feed in real time.
+Both models execute in parallel per detected face using multithreaded inference, and fused results are overlaid on the video feed in real time.
 
 ---
 
@@ -16,16 +17,13 @@ Both models execute in parallel per detected face using multithreaded inference,
 ### 2.1 Pipeline Overview
 
 ```
-Webcam Frame (720×480 BGR)
+Webcam Frame (720×480 BGR, mirrored)
         │
         ▼
-   Grayscale Conversion
+   RGB Conversion
         │
         ▼
-   dlib HOG Face Detector
-        │
-        ▼
-   68-Point Landmark Predictor
+   MediaPipe BlazeFace Detection
         │
         ▼
    Face ROI Extraction
@@ -43,6 +41,10 @@ Webcam Frame (720×480 BGR)
         │                                  │
         └──────────────┬───────────────────┘
                        ▼
+              AffectFusionEngine
+              (Russell + Plutchik)
+                       │
+                       ▼
               Frame Overlay + Display
 ```
 
@@ -52,7 +54,9 @@ Both inference branches run concurrently via `concurrent.futures.ThreadPoolExecu
 
 1. The main thread extracts the face ROI (both grayscale and color crops)
 2. Two futures are submitted simultaneously — one per model
-3. The main thread blocks on `future.result()` for both, then draws the overlay
+3. The main thread blocks on `future.result()` for both
+4. Results are passed to the `AffectFusionEngine` for cross-validation and enrichment
+5. The fused result drives the overlay rendering
 
 This avoids sequential bottlenecking where the larger VA model would delay the faster emotion model.
 
@@ -75,20 +79,17 @@ Both models were converted from Keras HDF5 format to **TensorFlow Lite** (FlatBu
 
 | Property | Value |
 |---|---|
-| Library | dlib 20.0.1 |
-| Method | HOG (Histogram of Oriented Gradients) + Linear SVM |
-| Input | Grayscale frame |
-| Output | List of `dlib.rectangle` bounding boxes |
-| Upsample factor | 0 (no upsampling) |
+| Library | MediaPipe 0.10.33 |
+| Model | BlazeFace short-range |
+| Model size | 225 KB |
+| Method | SSD-based single-shot detector optimized for faces < 2m from camera |
+| Input | RGB frame |
+| Output | List of detections with bounding boxes (normalized coordinates) |
+| Min detection confidence | 0.5 |
 
-### 3.2 Facial Landmarks
+### 3.2 Migration from dlib
 
-| Property | Value |
-|---|---|
-| Model | `shape_predictor_68_face_landmarks.dat` |
-| Model size | 95.1 MB |
-| Points | 68 landmarks (jaw, eyebrows, nose, eyes, mouth) |
-| Purpose | Face alignment reference + ROI refinement |
+The original implementation used dlib's HOG + Linear SVM detector with a 68-point landmark predictor (95.1 MB). The landmarks were extracted but never used beyond bounding box computation. MediaPipe BlazeFace replaced both components with a single 225 KB model that runs faster and handles a wider range of face angles and occlusions.
 
 ---
 
@@ -201,15 +202,15 @@ grayFace = np.expand_dims(grayFace, -1)
 
 ### 4.6 Output Classes
 
-| Index | Emotion | Display Color (BGR) |
-|---|---|---|
-| 0 | Angry | (193, 69, 42) |
-| 1 | Disgust | (164, 175, 49) |
-| 2 | Fear | (40, 52, 155) |
-| 3 | Happy | (23, 164, 28) |
-| 4 | Sad | (164, 93, 23) |
-| 5 | Surprise | (218, 229, 97) |
-| 6 | Neutral | (108, 72, 200) |
+| Index | Emotion |
+|---|---|
+| 0 | Angry |
+| 1 | Disgust |
+| 2 | Fear |
+| 3 | Happy |
+| 4 | Sad |
+| 5 | Surprise |
+| 6 | Neutral |
 
 ---
 
@@ -348,9 +349,96 @@ face = np.expand_dims(face, 0)
 
 ---
 
-## 6. TFLite Conversion
+## 6. Affect Fusion Engine
 
-### 6.1 Emotion Model Conversion
+### 6.1 Overview
+
+The `AffectFusionEngine` (in `affect_fusion.py`) integrates the outputs of both models using two established psychological frameworks to produce enriched, cross-validated emotion inferences.
+
+### 6.2 Russell's Circumplex Model — Sanity Check
+
+Each of the 7 categorical predictions has an expected position in VA space, derived from AffectNet empirical data (Mollahosseini et al. 2017):
+
+| Xception Class | Expected Valence | Expected Arousal |
+|---|---|---|
+| Angry | -0.45 | +0.31 |
+| Disgust | -0.48 | +0.22 |
+| Fear | -0.36 | +0.38 |
+| Happy | +0.55 | +0.28 |
+| Sad | -0.41 | -0.12 |
+| Surprise | +0.13 | +0.45 |
+| Neutral | +0.02 | -0.05 |
+
+A **conflict score** (Euclidean distance between predicted VA and expected VA centroid) flags disagreements. If `CS > 0.5`, the prediction is marked unreliable.
+
+### 6.3 Plutchik's Wheel of Emotions — Petal Mapping
+
+VA coordinates are mapped to Plutchik's 8 primary emotions using **nearest-centroid** with empirically validated coordinates from Mehrabian's PAD model (1980/1995):
+
+| Petal | Valence | Arousal | Mild | Basic | Intense |
+|---|---|---|---|---|---|
+| Joy | +0.76 | +0.48 | Serenity | Joy | Ecstasy |
+| Trust | +0.52 | +0.20 | Acceptance | Trust | Admiration |
+| Fear | -0.64 | +0.60 | Apprehension | Fear | Terror |
+| Surprise | +0.14 | +0.67 | Distraction | Surprise | Amazement |
+| Sadness | -0.63 | -0.27 | Pensiveness | Sadness | Grief |
+| Disgust | -0.60 | +0.35 | Boredom | Disgust | Loathing |
+| Anger | -0.51 | +0.59 | Annoyance | Anger | Rage |
+| Anticipation | +0.22 | +0.62 | Interest | Anticipation | Vigilance |
+
+**Why nearest-centroid instead of angular mapping:** Fear (-0.64, +0.60) and Anger (-0.51, +0.59) are nearly identical in VA space but are opposites on Plutchik's wheel (180 degrees apart). Angular mapping from VA to Plutchik is therefore psychologically invalid (Semeraro et al. 2021, Buechel & Hahn 2018).
+
+**Categorical disambiguation:** When the two closest VA centroids are within 0.15 distance of each other, the categorical model's prediction is used as a tiebreaker. This is psychologically justified because facial expressions can distinguish fear from anger even when felt arousal/valence are similar.
+
+**Intensity** is determined by VA magnitude (`r = sqrt(V² + A²)`): `r < 0.33` = mild, `0.33–0.66` = basic, `r ≥ 0.66` = intense.
+
+### 6.4 Dyad Detection
+
+When the classifier's top two softmax probabilities are close (gap < 0.15, top < 0.5), the system checks for compound emotions:
+
+**Primary Dyads (adjacent petals):**
+
+| Components | Dyad |
+|---|---|
+| Joy + Trust | Love |
+| Trust + Fear | Submission |
+| Fear + Surprise | Awe |
+| Surprise + Sadness | Disapproval |
+| Sadness + Disgust | Remorse |
+| Disgust + Anger | Contempt |
+| Anger + Anticipation | Aggressiveness |
+| Anticipation + Joy | Optimism |
+
+**Secondary Dyads (2 petals apart):**
+
+| Components | Dyad |
+|---|---|
+| Joy + Fear | Guilt |
+| Trust + Surprise | Curiosity |
+| Fear + Sadness | Despair |
+| Surprise + Disgust | Unbelief |
+| Sadness + Anger | Envy |
+| Disgust + Anticipation | Cynicism |
+| Anger + Joy | Pride |
+| Anticipation + Trust | Hope |
+
+Dyads are only emitted when the Russell sanity check passes (reliable prediction).
+
+### 6.5 Temporal Smoothing
+
+An exponential moving average (EMA) with α=0.3 smooths the V and A streams to reduce frame-to-frame jitter. The EMA resets when no face is detected (prevents stale values from bleeding into a new face).
+
+### 6.6 Known Limitations
+
+- **Trust and Anticipation** have no corresponding FER-2013 class. These petals are inferred purely from VA proximity to Mehrabian centroids and cannot be reached via categorical disambiguation.
+- **Fear/Anger ambiguity** in VA space is mitigated but not fully resolved. The Dominance dimension (absent from our VA model) is the true discriminator.
+- **Neutral** has no Plutchik equivalent. When the categorical model predicts Neutral and VA magnitude is low (< 0.2), no petal is assigned.
+
+---
+
+## 7. TFLite Conversion
+
+### 7.1 Emotion Model Conversion
 
 Straightforward — the HDF5 file contains the full model (architecture + weights):
 
@@ -360,7 +448,7 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 ```
 
-### 6.2 VA Model Conversion
+### 7.2 VA Model Conversion
 
 The H5 file contains **weights only** (no architecture). The MobileNetV2 + regression head must be reconstructed before conversion:
 
@@ -376,7 +464,7 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 ```
 
-### 6.3 Conversion Results
+### 7.3 Conversion Results
 
 | Model | Original Format | Original Size | TFLite Size | Reduction |
 |---|---|---|---|---|
@@ -387,7 +475,7 @@ The emotion model sees a larger reduction because the HDF5 format stores archite
 
 ---
 
-## 7. Model Comparison
+## 8. Model Comparison
 
 | Property | Emotion Model | VA Model |
 |---|---|---|
@@ -397,9 +485,9 @@ The emotion model sees a larger reduction because the HDF5 format stores archite
 | Input resolution | 64×64 | 224×224 |
 | Color channels | 1 (grayscale) | 3 (RGB) |
 | Parameters | 58,423 | 3,571,778 |
-| Parameter ratio | 1× | 61× |
+| Parameter ratio | 1x | 61x |
 | TFLite size | 236 KB | 13.5 MB |
-| Size ratio | 1× | 57× |
+| Size ratio | 1x | 57x |
 | FLOPs (approx.) | ~2M | ~300M |
 | Convolution type | Depthwise separable | Depthwise separable |
 | Normalization | BatchNorm | BatchNorm |
@@ -409,77 +497,91 @@ The emotion model sees a larger reduction because the HDF5 format stores archite
 
 ---
 
-## 8. Software Dependencies
+## 9. Software Dependencies
 
 | Package | Version | Purpose |
 |---|---|---|
 | tensorflow | 2.21.0 | TFLite interpreter, model conversion |
 | keras | 3.13.2 | Model loading (conversion only) |
 | opencv-python | 4.13.0.92 | Webcam capture, image processing, display |
-| dlib-bin | 20.0.1 | Face detection, landmark prediction |
+| mediapipe | >=0.10.14 | Face detection (BlazeFace) |
 | numpy | 2.4.4 | Array operations, preprocessing |
 | h5py | 3.14.0 | HDF5 file I/O |
 
 ---
 
-## 9. File Inventory
+## 10. File Inventory
 
 | File | Size | Purpose |
 |---|---|---|
-| `facecombined.py` | — | Combined parallel inference (emotion + VA) |
+| `facecombined.py` | — | Combined parallel inference + affect fusion |
+| `affect_fusion.py` | — | AffectFusionEngine (Russell + Plutchik integration) |
 | `facemot.py` | — | Standalone emotion classification |
 | `faceva.py` | — | Standalone VA regression |
 | `convert_to_tflite.py` | — | Emotion HDF5 → TFLite conversion |
 | `convert_va_to_tflite.py` | — | VA H5 weights → TFLite conversion |
 | `models/emotionModel.tflite` | 235.6 KB | Emotion classifier (production) |
 | `models/vaModel.tflite` | 13.5 MB | VA regressor (production) |
+| `models/blaze_face_short_range.tflite` | 225 KB | MediaPipe face detection model |
 | `models/emotionModel.hdf5` | 852.4 KB | Emotion classifier (original) |
 | `models/regressor_weights.h5` | 14.0 MB | VA regressor weights (original) |
-| `models/dlib/shape_predictor_68_face_landmarks.dat` | 95.1 MB | 68-point landmark model |
 
 ---
 
-## 10. Visualization Details
+## 11. Visualization Details
 
-### 10.1 Combined Mode (`facecombined.py`)
+### 11.1 Combined Mode (`facecombined.py`)
 
 For each detected face, the overlay renders:
 
-1. **Bounding box** — Color-coded by detected emotion class
-2. **Emotion label** (first row below box) — Emotion name + confidence percentage (e.g., `Happy (82%)`)
-   - Shows `---` if confidence < 0.36
-   - Background fill matches emotion color
-3. **VA values** (second row below box) — `V:0.45 A:0.23` format
-   - Dark gray background for readability
+1. **Bounding box** — Color-coded by Plutchik petal (dimmed if prediction is unreliable)
+2. **Base emotion label** (first row below box) — Direct model output: emotion name + confidence percentage (e.g., `Happy 80%`). An asterisk (`*`) indicates the Russell conflict score exceeds the reliability threshold.
+3. **Plutchik intensity word** (second row, conditional) — Only shown when the Plutchik-inferred label differs from the base emotion (e.g., `~ Ecstasy` for intense joy). Omitted when redundant.
+4. **Dyad label** (third row, conditional) — Compound emotion when detected (e.g., `+ Love`)
+5. **VA HUD** (top-right corner, 150×150) — Real-time Valence-Arousal grid with:
+   - Quadrant labels: Pleasant+, Unpleasant+, Pleasant-, Unpleasant-
+   - Colored dot tracking smoothed VA position
+   - Numeric readout: `V:+0.52  A:+0.31`
+   - Semi-transparent dark background
 
-### 10.2 Display Parameters
+### 11.2 Display Parameters
 
 | Parameter | Value |
 |---|---|
 | Frame resolution | 720×480 |
+| Camera | Mirrored (selfie view) |
 | Font | `cv2.FONT_HERSHEY_SIMPLEX` |
-| Font scale | 0.45 |
-| Text color | White (255, 255, 255) |
+| Font scale | 0.45 (labels), 0.38 (secondary), 0.25–0.35 (HUD) |
+| Text color | White (labels), light gray (secondary/HUD) |
 | Line type | `cv2.LINE_AA` (anti-aliased) |
 | Box thickness | 2px |
+| Label width | Auto-sized to text content |
+| HUD opacity | 70% background |
 | Exit key | Escape (key code 27) |
 
 ---
 
-## 11. Limitations
+## 12. Limitations
 
-- **Face detector** — dlib's HOG detector struggles with extreme angles (profile faces), heavy occlusion, and low-light conditions. It does not detect faces smaller than approximately 80×80 pixels at the default upsample factor.
+- **Face detector** — MediaPipe BlazeFace short-range is optimized for faces within ~2 meters of the camera. Performance degrades at longer distances or extreme profile angles.
 - **Emotion model** — FER-2013 dataset has known label noise (~10% of images are incorrectly labeled per multiple studies). The 0.36 confidence threshold was empirically chosen and may not generalize across demographics.
 - **VA model** — AffectNet annotations are subjective; inter-annotator agreement varies. The model outputs can exceed the [-1, 1] range slightly since the final layer has no bounded activation.
+- **Affect fusion** — The Plutchik mapping relies on Mehrabian PAD centroids which represent population-level averages. Individual emotional experiences may deviate significantly. Trust and Anticipation are unreachable via the categorical model. Fear/Anger disambiguation is imperfect without the Dominance dimension.
 - **Threading** — Python's GIL limits true parallelism for CPU-bound NumPy operations. The threading benefit comes primarily from TFLite's internal C++ execution releasing the GIL during `interpreter.invoke()`.
+- **Temporal smoothing** — EMA is scoped to a single face. Multi-face scenarios lack face tracking, so the EMA state may blend across different faces if detection order changes between frames.
 - **Latency** — The VA model (224×224 input, 3.6M params) is significantly slower per inference than the emotion model (64×64 input, 58K params). In the combined script, the VA model is the bottleneck.
 
 ---
 
-## 12. References
+## 13. References
 
 1. Mollahosseini, A., Hasani, B., & Mahoor, M. H. (2019). AffectNet: A Database for Facial Expression, Valence, and Arousal Computing in the Wild. *IEEE Transactions on Affective Computing*, 10(1), 18–31.
 2. Goodfellow, I. J., et al. (2013). Challenges in Representation Learning: A report on three machine learning contests. *ICML Workshop on Challenges in Representation Learning*.
 3. Chollet, F. (2017). Xception: Deep Learning with Depthwise Separable Convolutions. *CVPR 2017*.
 4. Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., & Chen, L.-C. (2018). MobileNetV2: Inverted Residuals and Linear Bottlenecks. *CVPR 2018*.
-5. Batic, D. Facial Affect Analysis on Mobile Devices Using Convolutional Neural Networks. *Bachelor thesis, University of Novi Sad*.
+5. Plutchik, R. (1980). *Emotion: A Psychoevolutionary Synthesis*. Harper & Row.
+6. Russell, J. A. (1980). A Circumplex Model of Affect. *Journal of Personality and Social Psychology*, 39(6), 1161–1178.
+7. Mehrabian, A. (1995). Framework for a comprehensive description and measurement of emotional states. *Genetic, Social, and General Psychology Monographs*, 121(3), 339–361.
+8. Semeraro, A., et al. (2021). PyPlutchik: Visualising and comparing emotion-annotated corpora. *PLOS ONE*, 16(9).
+9. Buechel, S. & Hahn, U. (2018). Representation Mapping: A Novel Approach to Generate High-Quality Multi-Lingual Emotion Lexicons. *LREC 2018*.
+10. Batic, D. Facial Affect Analysis on Mobile Devices Using Convolutional Neural Networks. *Bachelor thesis, University of Novi Sad*.
