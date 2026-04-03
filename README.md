@@ -3,7 +3,9 @@
 Detects human faces in a live webcam feed and performs two types of affect analysis in parallel:
 - **Categorical:** Classifies expressions into 7 discrete emotions
 - **Dimensional:** Predicts continuous Valence (positive/negative) and Arousal (calm/excited) values
-- **Fusion:** Cross-validates both outputs using Russell's Circumplex and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and reliability
+- **Fusion:** Cross-validates both outputs using Russell's Circumplex and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and reliability.
+
+![Carly](carly.png)
 
 ## Tech Stack
 
@@ -23,7 +25,7 @@ Detects human faces in a live webcam feed and performs two types of affect analy
 emot_recog/
 ├── facecombined.py              # Combined emotion + VA + fusion (parallel inference)
 ├── affect_fusion.py             # AffectFusionEngine (Plutchik/Russell integration)
-├── facemot.py                   # Standalone emotion classification
+├── facemot.py                   # Emotion classification
 ├── faceva.py                    # Standalone valence-arousal regression
 ├── convert_to_tflite.py         # HDF5 → TFLite (emotion model)
 ├── convert_va_to_tflite.py      # H5 weights → TFLite (VA model)
