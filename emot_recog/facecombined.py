@@ -22,10 +22,14 @@ emotions = {
 
 
 # Face detection
-mp_face_detection = mp.solutions.face_detection
-face_detection = mp_face_detection.FaceDetection(
-    model_selection=0,
-    min_detection_confidence=0.5
+BaseOptions = mp.tasks.BaseOptions
+FaceDetector = mp.tasks.vision.FaceDetector
+FaceDetectorOptions = mp.tasks.vision.FaceDetectorOptions
+face_detection = FaceDetector.create_from_options(
+    FaceDetectorOptions(
+        base_options=BaseOptions(model_asset_path='models/blaze_face_short_range.tflite'),
+        min_detection_confidence=0.5
+    )
 )
 
 # Emotion model (TFLite)
@@ -89,56 +93,55 @@ while True:
 
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_detection.process(rgbFrame)
-    if results.detections:
-        ih, iw, _ = frame.shape
-        for detection in results.detections:
-            bbox = detection.location_data.relative_bounding_box
-            x = max(0, int(bbox.xmin * iw))
-            y = max(0, int(bbox.ymin * ih))
-            w = min(int(bbox.width * iw), iw - x)
-            h = min(int(bbox.height * ih), ih - y)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgbFrame)
+    results = face_detection.detect(mp_image)
+    for detection in results.detections:
+        bbox = detection.bounding_box
+        x = max(0, bbox.origin_x)
+        y = max(0, bbox.origin_y)
+        w = bbox.width
+        h = bbox.height
 
-            grayFace = grayFrame[y:y + h, x:x + w]
-            colorFace = frame[y:y + h, x:x + w]
+        grayFace = grayFrame[y:y + h, x:x + w]
+        colorFace = frame[y:y + h, x:x + w]
 
-            if grayFace.size == 0 or colorFace.size == 0:
-                continue
+        if grayFace.size == 0 or colorFace.size == 0:
+            continue
 
-            # Run both models in parallel
-            emot_future = executor.submit(run_emotion, grayFace.copy())
-            va_future = executor.submit(run_va, colorFace.copy())
+        # Run both models in parallel
+        emot_future = executor.submit(run_emotion, grayFace.copy())
+        va_future = executor.submit(run_va, colorFace.copy())
 
-            try:
-                emotion_idx, emotion_prob = emot_future.result()
-                valence, arousal = va_future.result()
-            except:
-                continue
+        try:
+            emotion_idx, emotion_prob = emot_future.result()
+            valence, arousal = va_future.result()
+        except:
+            continue
 
-            color = emotions[emotion_idx]['color']
-            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+        color = emotions[emotion_idx]['color']
+        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
-            # Emotion label
-            cv2.line(frame, (x, y + h), (x + 20, y + h + 20),
-                     color, thickness=2)
-            cv2.rectangle(frame, (x + 20, y + h + 20), (x + 160, y + h + 40),
-                          color, -1)
-            emot_label = emotions[emotion_idx]['emotion']
-            if emotion_prob > 0.36:
-                cv2.putText(frame, f"{emot_label} ({emotion_prob:.0%})",
-                            (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                            (255, 255, 255), 1, cv2.LINE_AA)
-            else:
-                cv2.putText(frame, "---",
-                            (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                            (255, 255, 255), 1, cv2.LINE_AA)
-
-            # VA label
-            cv2.rectangle(frame, (x + 20, y + h + 42), (x + 160, y + h + 62),
-                          (60, 60, 60), -1)
-            cv2.putText(frame, f"V:{valence:.2f} A:{arousal:.2f}",
-                        (x + 25, y + h + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+        # Emotion label
+        cv2.line(frame, (x, y + h), (x + 20, y + h + 20),
+                 color, thickness=2)
+        cv2.rectangle(frame, (x + 20, y + h + 20), (x + 160, y + h + 40),
+                      color, -1)
+        emot_label = emotions[emotion_idx]['emotion']
+        if emotion_prob > 0.36:
+            cv2.putText(frame, f"{emot_label} ({emotion_prob:.0%})",
+                        (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                         (255, 255, 255), 1, cv2.LINE_AA)
+        else:
+            cv2.putText(frame, "---",
+                        (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+                        (255, 255, 255), 1, cv2.LINE_AA)
+
+        # VA label
+        cv2.rectangle(frame, (x + 20, y + h + 42), (x + 160, y + h + 62),
+                      (60, 60, 60), -1)
+        cv2.putText(frame, f"V:{valence:.2f} A:{arousal:.2f}",
+                    (x + 25, y + h + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+                    (255, 255, 255), 1, cv2.LINE_AA)
 
     if args["isVideoWriter"] == True:
         videoWrite.write(frame)
