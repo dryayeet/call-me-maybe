@@ -1,5 +1,5 @@
 # Importing required packages
-import tensorflow as tf
+from keras.models import load_model
 import numpy as np
 import argparse
 import dlib
@@ -61,12 +61,9 @@ faceLandmarks = "models/dlib/shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(faceLandmarks)
 
-emotionModelPath = 'models/emotionModel.tflite'
-interpreter = tf.lite.Interpreter(model_path=emotionModelPath)
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-emotionTargetSize = tuple(input_details[0]['shape'][1:3])
+emotionModelPath = 'models/emotionModel.hdf5'  # fer2013_mini_XCEPTION.110-0.65
+emotionClassifier = load_model(emotionModelPath, compile=False)
+emotionTargetSize = emotionClassifier.input_shape[1:3]
 
 cap = cv2.VideoCapture(0)
 
@@ -101,9 +98,7 @@ while True:
         grayFace = (grayFace - 0.5) * 2.0
         grayFace = np.expand_dims(grayFace, 0)
         grayFace = np.expand_dims(grayFace, -1)
-        interpreter.set_tensor(input_details[0]['index'], grayFace)
-        interpreter.invoke()
-        emotion_prediction = interpreter.get_tensor(output_details[0]['index'])
+        emotion_prediction = emotionClassifier.predict(grayFace)
         emotion_probability = np.max(emotion_prediction)
         if (emotion_probability > 0.36):
             emotion_label_arg = np.argmax(emotion_prediction)
