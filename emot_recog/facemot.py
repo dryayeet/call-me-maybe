@@ -2,7 +2,7 @@
 from keras.models import load_model
 import numpy as np
 import argparse
-import dlib
+import mediapipe as mp
 import cv2
 
 ap = argparse.ArgumentParser()
@@ -42,24 +42,12 @@ emotions = {
 }
 
 
-def shapePoints(shape):
-    coords = np.zeros((68, 2), dtype="int")
-    for i in range(0, 68):
-        coords[i] = (shape.part(i).x, shape.part(i).y)
-    return coords
-
-
-def rectPoints(rect):
-    x = rect.left()
-    y = rect.top()
-    w = rect.right() - x
-    h = rect.bottom() - y
-    return (x, y, w, h)
-
-
-faceLandmarks = "models/dlib/shape_predictor_68_face_landmarks.dat"
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(faceLandmarks)
+# Face detection
+mp_face_detection = mp.solutions.face_detection
+face_detection = mp_face_detection.FaceDetection(
+    model_selection=0,
+    min_detection_confidence=0.5
+)
 
 emotionModelPath = 'models/emotionModel.hdf5'  # fer2013_mini_XCEPTION.110-0.65
 emotionClassifier = load_model(emotionModelPath, compile=False)
@@ -82,39 +70,45 @@ while True:
         break
 
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    rects = detector(grayFrame, 0)
-    for rect in rects:
-        shape = predictor(grayFrame, rect)
-        points = shapePoints(shape)
-        (x, y, w, h) = rectPoints(rect)
-        grayFace = grayFrame[y:y + h, x:x + w]
-        try:
-            grayFace = cv2.resize(grayFace, (emotionTargetSize))
-        except:
-            continue
+    rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = face_detection.process(rgbFrame)
+    if results.detections:
+        ih, iw, _ = frame.shape
+        for detection in results.detections:
+            bbox = detection.location_data.relative_bounding_box
+            x = max(0, int(bbox.xmin * iw))
+            y = max(0, int(bbox.ymin * ih))
+            w = min(int(bbox.width * iw), iw - x)
+            h = min(int(bbox.height * ih), ih - y)
 
-        grayFace = grayFace.astype('float32')
-        grayFace = grayFace / 255.0
-        grayFace = (grayFace - 0.5) * 2.0
-        grayFace = np.expand_dims(grayFace, 0)
-        grayFace = np.expand_dims(grayFace, -1)
-        emotion_prediction = emotionClassifier.predict(grayFace)
-        emotion_probability = np.max(emotion_prediction)
-        if (emotion_probability > 0.36):
-            emotion_label_arg = np.argmax(emotion_prediction)
-            color = emotions[emotion_label_arg]['color']
-            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-            cv2.line(frame, (x, y + h), (x + 20, y + h + 20),
-                     color,
-                     thickness=2)
-            cv2.rectangle(frame, (x + 20, y + h + 20), (x + 110, y + h + 40),
-                          color, -1)
-            cv2.putText(frame, emotions[emotion_label_arg]['emotion'],
-                        (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (255, 255, 255), 1, cv2.LINE_AA)
-        else:
-            color = (255, 255, 255)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+            grayFace = grayFrame[y:y + h, x:x + w]
+            try:
+                grayFace = cv2.resize(grayFace, (emotionTargetSize))
+            except:
+                continue
+
+            grayFace = grayFace.astype('float32')
+            grayFace = grayFace / 255.0
+            grayFace = (grayFace - 0.5) * 2.0
+            grayFace = np.expand_dims(grayFace, 0)
+            grayFace = np.expand_dims(grayFace, -1)
+            emotion_prediction = emotionClassifier.predict(grayFace)
+            emotion_probability = np.max(emotion_prediction)
+            if (emotion_probability > 0.36):
+                emotion_label_arg = np.argmax(emotion_prediction)
+                color = emotions[emotion_label_arg]['color']
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                cv2.line(frame, (x, y + h), (x + 20, y + h + 20),
+                         color,
+                         thickness=2)
+                cv2.rectangle(frame, (x + 20, y + h + 20), (x + 110, y + h + 40),
+                              color, -1)
+                cv2.putText(frame, emotions[emotion_label_arg]['emotion'],
+                            (x + 25, y + h + 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 1, cv2.LINE_AA)
+            else:
+                color = (255, 255, 255)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
     if args["isVideoWriter"] == True:
         videoWrite.write(frame)
