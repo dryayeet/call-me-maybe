@@ -3,7 +3,7 @@
 Detects human faces in a live webcam feed and performs two types of affect analysis in parallel:
 - **Categorical:** Classifies expressions into 7 discrete emotions
 - **Dimensional:** Predicts continuous Valence (positive/negative) and Arousal (calm/excited) values
-- **Fusion:** Cross-validates both outputs using Russell's Circumplex and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and reliability
+- **Fusion:** Cross-validates both outputs using Russell's Circumplex and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and reliabilityy
 
 ![Carly](carly.png)
 
