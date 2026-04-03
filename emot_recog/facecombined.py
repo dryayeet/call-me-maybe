@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import argparse
-import dlib
+import mediapipe as mp
 import cv2
 from concurrent.futures import ThreadPoolExecutor
 
@@ -21,25 +21,16 @@ emotions = {
 }
 
 
-def shapePoints(shape):
-    coords = np.zeros((68, 2), dtype="int")
-    for i in range(0, 68):
-        coords[i] = (shape.part(i).x, shape.part(i).y)
-    return coords
-
-
-def rectPoints(rect):
-    x = rect.left()
-    y = rect.top()
-    w = rect.right() - x
-    h = rect.bottom() - y
-    return (x, y, w, h)
-
-
 # Face detection
-faceLandmarks = "models/dlib/shape_predictor_68_face_landmarks.dat"
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(faceLandmarks)
+BaseOptions = mp.tasks.BaseOptions
+FaceDetector = mp.tasks.vision.FaceDetector
+FaceDetectorOptions = mp.tasks.vision.FaceDetectorOptions
+face_detection = FaceDetector.create_from_options(
+    FaceDetectorOptions(
+        base_options=BaseOptions(model_asset_path='models/blaze_face_short_range.tflite'),
+        min_detection_confidence=0.5
+    )
+)
 
 # Emotion model (TFLite)
 emotInterp = tf.lite.Interpreter(model_path='models/emotionModel.tflite')
@@ -101,11 +92,15 @@ while True:
         break
 
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    rects = detector(grayFrame, 0)
-    for rect in rects:
-        shape = predictor(grayFrame, rect)
-        points = shapePoints(shape)
-        (x, y, w, h) = rectPoints(rect)
+    rgbFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgbFrame)
+    results = face_detection.detect(mp_image)
+    for detection in results.detections:
+        bbox = detection.bounding_box
+        x = max(0, bbox.origin_x)
+        y = max(0, bbox.origin_y)
+        w = bbox.width
+        h = bbox.height
 
         grayFace = grayFrame[y:y + h, x:x + w]
         colorFace = frame[y:y + h, x:x + w]
