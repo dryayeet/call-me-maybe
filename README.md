@@ -67,7 +67,7 @@ python facemot.py
 python faceva.py
 ```
 
-All scripts support `-vw True` to save output to video. Press `Esc` to exit.
+All scripts support `-vw True` to save output to video. Press `Esc` to exit
 
 ## Models
 
