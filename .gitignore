@@ -4,3 +4,18 @@ hi.py
 .claude/
 __pycache__/
 car/
+.venv/
+venv/
+PUBLISHABILITY_REVIEW.md
+
+# datasets, caches, third-party code and envs (never commit)
+data/
+emonet_env/
+third_party/
+fer2013*.csv
+*.npz
+*.pth
+
+# generated outputs
+*.avi
+eval/results/smoke_*
