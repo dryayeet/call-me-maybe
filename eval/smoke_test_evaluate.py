@@ -53,10 +53,11 @@ def main():
     d = r["E4_default_thresholds"]
     assert d["n_fired"] > 0, d
     assert "Awe" in d["dyad_counts"], d
-    assert 0.0 <= d["top2_pair_agreement"] <= 1.0
+    assert 0.0 <= d["pair_support_ge2_fired"] <= 1.0
     assert len(r["E5_dyad_threshold_ablation"]) == 12
-    print("SMOKE OK:", {k: d[k] for k in ("n_fired", "top2_pair_agreement",
-                                         "permutation_baseline_mean", "dyad_counts")})
+    assert "delta_combo_hand_minus_msp" in r["E2_added_value"]
+    print("SMOKE OK:", {k: d[k] for k in ("n_fired", "pair_support_ge2_fired",
+                                         "pair_support_permutation_mean", "dyad_counts")})
 
 
 if __name__ == "__main__":

@@ -311,6 +311,30 @@ def main():
         "msp": float(logit_model[0][0]), "cs_fitted": float(logit_model[0][1]),
         "bias": float(logit_model[0][2])}
 
+    # Does the conflict score add information beyond softmax confidence?
+    logit_hand = fit_logistic(
+        np.column_stack([sm_val.max(1), conflict_scores(pred_val, va_val, hand)]), err_val)
+    combo_hand = predict_logistic(logit_hand, np.column_stack([msp, cs_hand]))
+
+    def paired_delta(a, b):
+        d = auroc(a, err_te) - auroc(b, err_te)
+        ci = bootstrap_ci(lambda i: auroc(a[i], err_te[i]) - auroc(b[i], err_te[i]), n, args.boot)
+        return {"delta_auroc": float(d), "ci95": ci}
+
+    strata = {}
+    for lo, hi in ((0.0, 0.5), (0.5, 0.7), (0.7, 0.9), (0.9, 1.01)):
+        m = (msp >= lo) & (msp < hi)
+        strata[f"msp_{lo}-{min(hi, 1.0)}"] = {
+            "n": int(m.sum()), "error_rate": float(err_te[m].mean()) if m.any() else None,
+            "auroc_cs_hand": auroc(cs_hand[m], err_te[m]) if m.any() else None}
+    R["E2_added_value"] = {
+        "logistic_msp_plus_cs_hand_auroc": auroc(combo_hand, err_te),
+        "delta_combo_fitted_minus_msp": paired_delta(combo, -msp),
+        "delta_combo_hand_minus_msp": paired_delta(combo_hand, -msp),
+        "spearman_cs_hand_vs_msp": spearman(cs_hand, msp),
+        "cs_hand_auroc_within_msp_strata": strata,
+    }
+
     # E3 ---------------------------------------------------------------
     def gate(cs, tau):
         rel = cs <= tau
@@ -319,6 +343,11 @@ def main():
                 "acc_unreliable": float((pred_te[~rel] == y_te[~rel]).mean()) if (~rel).any() else None}
 
     R["E3_gate_tau_0.5"] = {"hand": gate(cs_hand, 0.5), "fitted": gate(cs_fit, 0.5)}
+    # Same coverage, but keep the most confident images by max-softmax instead
+    for k in ("hand", "fitted"):
+        cov = R["E3_gate_tau_0.5"][k]["coverage"]
+        keep = np.argsort(-msp)[: int(round(cov * n))]
+        R["E3_gate_tau_0.5"][k]["msp_acc_at_same_coverage"] = float((pred_te[keep] == y_te[keep]).mean())
     R["E3_tau_sweep_hand"] = [gate(cs_hand, t) for t in np.round(np.arange(0.1, 1.51, 0.1), 2)]
     R["E3_tau_sweep_fitted"] = [gate(cs_fit, t) for t in np.round(np.arange(0.1, 1.51, 0.1), 2)]
 
@@ -385,28 +414,40 @@ def main():
         R["E4_ferplus"]["spearman_model_entropy_vs_annotator_entropy"] = spearman(ent[ok], entropy(ann[ok]))
         R["E4_ferplus"]["spearman_model_msp_vs_annotator_majority_share"] = spearman(msp[ok], ann[ok].max(1))
 
+        def pair_support(rows_idx, vote_rows, k=2):
+            """Fraction of images where BOTH of the model's top-2 classes got >= k votes."""
+            if len(rows_idx) == 0:
+                return float("nan")
+            hits = []
+            for i, vr in zip(rows_idx, vote_rows):
+                a, b = np.argsort(sm_te[i])[-2:]
+                hits.append(vr[a] >= k and vr[b] >= k)
+            return float(np.mean(hits))
+
         def ferplus_agreement(p_max, gap, tau=0.5):
             dy = engine_dyads(sm_te, va_te, p_max=p_max, gap=gap, tau=tau)
             fired = np.array([d is not None for d in dy]) & ok
             if fired.sum() == 0:
                 return {"p_max": p_max, "gap": gap, "n_fired": 0}
-            model_pairs = [top2_pair(sm_te[i]) for i in np.where(fired)[0]]
-            ann_pairs = [top2_pair(ann[i]) for i in np.where(fired)[0]]
+            fi = np.where(fired)[0]
+            nonfired = np.where(ok & ~fired)[0]
             # annotators "split" = second class got >= 2 of ~10 votes
-            split = np.array([np.sort(v_te[i])[-2] >= 2 for i in np.where(fired)[0]])
-            agree = np.array([m == a for m, a in zip(model_pairs, ann_pairs)])
-            perm = []
-            for _ in range(500):
-                sh = RNG.permutation(len(ann_pairs))
-                perm.append(np.mean([model_pairs[k] == ann_pairs[sh[k]] for k in range(len(sh))]))
-            # also: base rate of annotator splits on non-fired valid images
-            nonfired = ok & ~fired
-            split_nonfired = np.mean([np.sort(v_te[i])[-2] >= 2 for i in np.where(nonfired)[0]])
+            split = np.array([np.sort(v_te[i])[-2] >= 2 for i in fi])
+            split_nonfired = np.mean([np.sort(v_te[i])[-2] >= 2 for i in nonfired])
+            support = pair_support(fi, v_te[fi])
+            support_nonfired = pair_support(nonfired, v_te[nonfired])
+            perm = [pair_support(fi, v_te[fi][RNG.permutation(len(fi))]) for _ in range(500)]
+            # exact top-2 agreement where the annotator top-2 is well defined
+            clear = [i for i in fi if np.sort(v_te[i])[-2] >= 2 and np.sort(v_te[i])[-2] > np.sort(v_te[i])[-3]]
+            exact = [top2_pair(sm_te[i]) == top2_pair(v_te[i]) for i in clear]
             return {"p_max": p_max, "gap": gap, "n_fired": int(fired.sum()),
                     "fire_rate": float(fired.sum() / ok.sum()),
-                    "top2_pair_agreement": float(agree.mean()),
-                    "permutation_baseline_mean": float(np.mean(perm)),
-                    "permutation_baseline_p95": float(np.percentile(perm, 95)),
+                    "pair_support_ge2_fired": support,
+                    "pair_support_ge2_not_fired": support_nonfired,
+                    "pair_support_permutation_mean": float(np.mean(perm)),
+                    "pair_support_permutation_p95": float(np.percentile(perm, 95)),
+                    "exact_top2_agreement_clear_annotator_top2": float(np.mean(exact)) if exact else None,
+                    "n_clear_annotator_top2": len(clear),
                     "annotator_split_rate_fired": float(split.mean()),
                     "annotator_split_rate_not_fired": float(split_nonfired),
                     "dyad_counts": {k: int(sum(1 for d, f in zip(dy, fired) if f and d == k))
