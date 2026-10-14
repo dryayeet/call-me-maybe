@@ -1,14 +1,14 @@
 # Real-Time Dual-Model Facial Affect Analysis via Fusion of Categorical and Dimensional Predictions Using Russell's Circumplex, Plutchik's Wheel of Emotions, and Mehrabian's PAD Framework
 
 **lemon**
-Department of Computer Science
+Manipal Academy of Higher Education
 October 14, 2026
 
 ---
 
 ## Abstract
 
-*Automatic facial expression analysis systems typically commit to a single representation of affect: either discrete emotion categories (e.g., happy, sad, angry) or continuous dimensional scores (valence and arousal). Categorical models offer interpretability but discard intensity and blend information; dimensional models capture graded affect but produce coordinates that are difficult to communicate to end users. This project presents a real-time webcam-based affect analysis system that runs both representations concurrently and fuses them under classical psychological structure. A Mini Xception convolutional network trained on FER-2013 performs 7-class expression classification, while a MobileNetV2 regressor trained on AffectNet predicts continuous valence and arousal. Both models execute in parallel per detected face as TensorFlow Lite interpreters, and MediaPipe BlazeFace supplies face detection. An Affect Fusion Engine cross-validates the two model outputs using Russell's Circumplex Model of Affect, maps fused coordinates onto the eight petals of Plutchik's Wheel of Emotions using Mehrabian's empirically measured Pleasure-Arousal-Dominance (PAD) word coordinates as the numeric bridge, and in doing so expands the petal vocabulary into sixteen compound-emotion labels (dyads) and three intensity tiers per petal. The engine additionally emits a per-frame reliability signal derived from cross-representation agreement. The complete pipeline, including a 58K-parameter emotion classifier and a 3.6M-parameter valence-arousal regressor, runs entirely on commodity CPU hardware at interactive frame rates, with total model footprint under 14.2 MB.*
+*Automatic facial expression analysis systems typically commit to a single representation of affect: either discrete emotion categories (e.g., happy, sad, angry) or continuous dimensional scores (valence and arousal). Categorical models offer interpretability but discard intensity and blend information; dimensional models capture graded affect but produce coordinates that are difficult to communicate to end users. This project presents a real-time webcam-based affect analysis system that runs both representations concurrently and fuses them under classical psychological structure. A Mini Xception convolutional network trained on FER-2013 performs 7-class expression classification, while a MobileNetV2 regressor trained on AffectNet predicts continuous valence and arousal. Both models execute in parallel per detected face as TensorFlow Lite interpreters, and MediaPipe BlazeFace supplies face detection. An Affect Fusion Engine cross-validates the two model outputs using Russell's Circumplex Model of Affect, maps fused coordinates onto the eight petals of Plutchik's Wheel of Emotions using Mehrabian's empirically measured Pleasure-Arousal-Dominance (PAD) word coordinates as the numeric bridge, and in doing so expands the petal vocabulary into sixteen compound-emotion labels (dyads) and three intensity tiers per petal. The engine additionally emits a per-frame reliability signal derived from cross-representation agreement. The complete pipeline, including a 58K-parameter emotion classifier and a 3.6M-parameter valence-arousal regressor, runs entirely on CPU at a measured median of 20.5 ms per frame for one face (about 49 FPS before capture and rendering) on a 4-core laptop processor, with total model footprint under 14.2 MB.*
 
 **Index Terms** — affective computing, facial expression recognition, basic emotions, valence-arousal, pleasure-arousal-dominance, compound emotions, dyads, microexpressions, emotion classification, TensorFlow Lite, real-time systems, convolutional neural networks
 
@@ -70,21 +70,21 @@ The project assembled its analytical vocabulary from the classical dimensional a
 - **Russell's Circumplex Model (1980)** [10] is the basis of the analysis. It plotted emotions on a geometric scale, the valence-arousal plane, rather than a categorical one: affect words occupy approximately fixed angular positions around a circle, and distance from the origin tracks intensity. This supplies the continuous substrate.
 - **Ekman's six basic emotions** [4] were the categorical starting point, and proved too coarse a vocabulary for the granularity this project targets.
 - **Plutchik's Wheel of Emotions (1980)** [11], [12] answers that objection combinatorially: eight basic emotions arranged as petals with opposites across, each petal subdivided into three intensity tiers, plus a compositional algebra of "dyads" in which adjacent petals combine into compound emotions (Joy + Trust = Love). Eight basic petals plus eight primary dyads form sixteen distinct emotion labels, with secondary dyads extending further.
-- **Mehrabian's PAD model (1974/1995)** [13], [14], [15] is perhaps the most important piece. It supplies empirically measured Pleasure-Arousal-Dominance coordinates for emotion words: the numeric bridge needed to convert continuous geometry back into discrete Plutchik labels without arbitrary hand-tuning.
-- **The Affect Fusion Engine** (`emot_recog/affect_fusion.py`) is the software statement of that itinerary. The rest is standard computer vision: MediaPipe BlazeFace [17], [18], Mini Xception [8], [19], and MobileNetV2 regression [20], [22], all under TensorFlow Lite [27], trained on FER-2013 [7] and AffectNet [16].
+- **Mehrabian's PAD model (1974/1995)** [13], [14], [15] is perhaps the most important piece. It supplies empirically measured Pleasure-Arousal-Dominance coordinates for emotion words [28]: the numeric bridge needed to convert continuous geometry back into discrete Plutchik labels without arbitrary hand-tuning.
+- **The Affect Fusion Engine** (`emot_recog/affect_fusion.py`) is the software statement of that itinerary. The rest is standard computer vision: MediaPipe BlazeFace [17], [18], Mini Xception [8], [19], and MobileNetV2 regression [20], all under TensorFlow Lite [27], trained on FER-2013 [7] and AffectNet [16].
 
 ### D. Contributions
 
-1. A **parallel dual-model inference architecture** in which a Mini Xception classifier [8], [19] and a MobileNetV2 valence-arousal regressor [20], [22] run simultaneously per detected face via a thread pool, each as an independent TensorFlow Lite interpreter.
+1. A **dual-model inference pipeline** in which a Mini Xception classifier [8], [19] and a MobileNetV2 valence-arousal regressor [20] run per detected face as independent TensorFlow Lite interpreters, with measured per-component latency (Table XIII).
 2. An **Affect Fusion Engine** that:
    - smooths valence and arousal with an exponential moving average,
-   - computes a **conflict score** between categorical and dimensional predictions against AffectNet-derived centroids [16], gating downstream inference on their agreement,
-   - maps valence-arousal coordinates onto the eight Plutchik petals via nearest-centroid classification over PAD-derived coordinates [14], [15],
+   - computes a **conflict score** between categorical and dimensional predictions against per-category centroids in AffectNet valence-arousal space [16], gating downstream inference on their agreement,
+   - maps valence-arousal coordinates onto the eight Plutchik petals via nearest-centroid classification over published PAD word-rating coordinates [28],
    - disambiguates near-ties (notably Fear/Anger, which are nearly coincident in two dimensions) using the categorical prediction as a tiebreaker,
    - infers a three-tier **intensity label** (mild / basic / intense) from the polar magnitude of the valence-arousal vector,
    - detects **compound emotions (dyads)** from the classifier's softmax distribution, following Plutchik's primary and secondary dyad definitions [11], [12].
 3. A **quantified system description**: per-layer parameter counts, dataset provenance, preprocessing pipelines, all hyperparameters, and TFLite conversion results, verified against the source code.
-4. A documented account of the **psychometric limits of two-dimensional fusion**: the Fear/Anger collinearity in valence-arousal space [15], [25], its origin in the truncation of PAD's Dominance axis, and exactly which of the sixteen dyads are reachable given the categorical bridge.
+4. A documented account of the **psychometric limits of two-dimensional fusion**: the Fear/Anger collinearity in valence-arousal space [25], [28], its origin in the truncation of PAD's Dominance axis, and exactly which of the sixteen dyads are reachable given the categorical bridge.
 
 ### E. Paper Organization
 
@@ -151,7 +151,9 @@ The PAD model is the load-bearing bridge of this project, so it deserves its own
 
 **Elaboration.** Mehrabian's 1995 monograph [14] developed the framework into a comprehensive description and measurement system for emotional states: an emotion is a transient point in PAD space, stable individual differences are the corresponding temperament coordinates, and a large vocabulary of emotion words and phrases carries empirically measured (P, A, D) centroids, obtained by averaging rated words. The 1996 paper [15] recast PAD as a general framework for temperament. The practical consequence for engineering is what matters: discrete emotion labels come with **metric** coordinates attached.
 
-**Mapping onto the other two frameworks.** Pleasure is valence and Arousal is arousal; PAD and the circumplex share axes, with PAD adding a third. The repo's bridge table (Table VII) is stated to be the (P, A) projections of Mehrabian's measured word coordinates for the eight Plutchik petals, e.g., Joy at (P, A) = (+0.76, +0.48). Russell's circumplex supplies *ordinal* structure (angles of words around the origin); PAD supplies *metric* centroids (where words actually sit). A nearest-centroid classifier needs the latter.
+**Mapping onto the other two frameworks.** Pleasure is valence and Arousal is arousal; PAD and the circumplex share axes, with PAD adding a third. Russell's circumplex supplies *ordinal* structure (angles of words around the origin); PAD supplies *metric* centroids (where words actually sit). A nearest-centroid classifier needs the latter.
+
+**Provenance of the engine's coordinates.** For six of the eight petals, the centroids used by the engine (Table VII) trace to published PAD ratings of emotion terms: the Russell and Mehrabian ratings of 151 terms on a [-1, 1] scale [28] (values as reproduced in [29]) and Mehrabian's PAD emotion-scale terms [30]. Several petals are represented by the nearest available *word* rather than the petal name: Joy by *joyful*, Fear by *fearful*, Sadness by *sad*, Disgust by *disgusted*, Anger by *angry*, and Anticipation by *curious*. Two entries are not supported by any located source: the Surprise valence (0.14 in the engine, whereas *surprised* is rated +0.40 in [28]) and the Trust centroid, for which no matching term was found. These are word ratings, i.e., semantic judgments of emotion vocabulary with substantial standard deviations, not measurements of facial expressions. Using them as facial-affect centroids is a modeling assumption and is stated as such.
 
 **TABLE II**
 **The PAD Dimensions and Their Role in This Project**
@@ -160,9 +162,9 @@ The PAD model is the load-bearing bridge of this project, so it deserves its own
 |---|---|---|---|
 | Pleasure (P) | happy ... unhappy | valence | Axis 1 of the regressor output |
 | Arousal (A) | stimulated ... relaxed | activation | Axis 2 of the regressor output |
-| Dominance (D) | controlling ... controlled | power, control | **Truncated.** The axis that separates Fear (low D) from Anger (high D) in Mehrabian's measurements [14], [15] |
+| Dominance (D) | controlling ... controlled | power, control | **Truncated.** The axis that separates Fear (low D) from Anger (high D) in PAD word ratings [28] |
 
-**Why Dominance matters, and what its absence costs.** In Mehrabian's measured word-space, Fear and Anger have nearly coincident (P, A) coordinates (Table VII: Fear at (-0.64, +0.60), Anger at (-0.51, +0.59), Euclidean distance 0.13) but sit at opposite ends of Dominance. The two-dimensional pipeline here inherits exactly this degeneracy: felt valence-arousal cannot tell terror from rage; only the face (through the categorical branch) or Dominance (absent) can. This is not a bug in the mapping; it is a documented property of the affect space itself [15], [25], and the engine's disambiguation logic (Section III-E4) is designed around it.
+**Why Dominance matters, and what its absence costs.** In the published PAD word ratings, *fearful* and *angry* have nearly coincident (P, A) coordinates (Table VII: (-0.64, +0.60) and (-0.51, +0.59), Euclidean distance 0.13) but opposite-signed Dominance (D = -0.43 and +0.25 respectively) [28]. The two-dimensional pipeline here inherits exactly this degeneracy: felt valence-arousal cannot tell terror from rage; only the face (through the categorical branch) or Dominance (absent) can. This is not a bug in the mapping; it is a documented property of the affect space itself [25], [28], and the engine's disambiguation logic (Section III-E4) is designed around it.
 
 ### E. What This Project Deliberately Does Not Use
 
@@ -170,7 +172,17 @@ Appraisal theories (the component process model [26]) treat an emotion as the ou
 
 ### F. The Machine Learning Lineage
 
-The engineering substrate is deliberately standard. FER-2013 [7] operationalized categorical FER; the mini-XCEPTION of Arriaga et al. [8], an Xception-style [19] depthwise-separable network with residual blocks, made categorical FER real-time on commodity hardware. AffectNet [16] operationalized the dimensional model "in the wild" with both expression labels and continuous valence-arousal annotations, plus baseline regressors whose errors this project's VA model matches (RMSE ≈ 0.39 / 0.38). MobileNetV2 [22] supplies the regressor backbone with inverted residuals and linear bottlenecks. BlazeFace [17], distributed through MediaPipe [18], supplies a 225 KB SSD-style short-range face detector. Everything executes under TensorFlow Lite [27].
+The engineering substrate is deliberately standard. FER-2013 [7] operationalized categorical FER; the mini-XCEPTION of Arriaga et al. [8], an Xception-style [19] depthwise-separable network with residual blocks, made categorical FER real-time on commodity hardware. AffectNet [16] operationalized the dimensional model "in the wild" with both expression labels and continuous valence-arousal annotations, plus baseline regressors. The upstream source of this project's VA checkpoint reports errors comparable to those baselines (RMSE ≈ 0.39 / 0.38); that figure is inherited, not re-measured here. MobileNetV2 [20] supplies the regressor backbone with inverted residuals and linear bottlenecks. BlazeFace [17], distributed through MediaPipe [18], supplies a 225 KB SSD-style short-range face detector. Everything executes under TensorFlow Lite [27].
+
+### G. Closest Prior Work
+
+Three lines of work overlap directly with this project, and each constrains what it can claim.
+
+**Compound expressions.** Du et al. [31] showed that compound expressions (e.g., happily surprised, fearfully angry) are produced with distinct and consistent facial configurations, and defined 21 categories. RAF-DB [32], [33] brought compound expressions to in-the-wild data with 11 compound classes. These works treat compounds as perceptual categories with their own labels. This engine instead infers Plutchik dyads post hoc from a basic-category classifier, which is a weaker form of evidence (Section III-E6).
+
+**Joint categorical-dimensional models.** EmoNet [34] predicts discrete expression and continuous valence-arousal from a single network, and the Aff-Wild2 dataset and ABAW challenges [35], [36] made multi-task affect recognition (expressions, valence-arousal, action units) a standard benchmark. These models learn both representations jointly. This project fuses two independently trained models through explicit psychological rules. Joint models are likely more accurate per representation. The rule layer's claimed advantages are interpretability, swappable components, and an explicit cross-representation disagreement signal; whether that signal is useful is an empirical question (Section VI).
+
+**Ambiguity and uncertainty in FER.** A substantial literature attributes ambiguity in FER labels and predictions to ambiguous expressions, low image quality, and annotator subjectivity [37], and models it with crowd-sourced label distributions [38] or label-distribution learning [39]. This literature is the main counter-argument to the dyad heuristic and is addressed in Section III-E6.
 
 ---
 
@@ -280,7 +292,7 @@ The classifier is a compact Xception variant [8], [19]: two 3×3 convolutions (8
 
 ### D. Dimensional Branch: MobileNetV2 Valence-Arousal Regressor
 
-The regressor is a MobileNetV2 backbone [22] (inverted residual blocks with linear bottlenecks, input 224×224×3) followed by GlobalAveragePooling2D, Dense(1024, ReLU), and Dense(2, linear) (Fig. 4). The checkpoint stores weights only (`models/regressor_weights.h5`); the architecture is reconstructed in code before TFLite conversion (Section IV-B). The model was trained on the manually annotated subset of AffectNet [16] with valence and arousal targets in [-1, 1], and its test error matches the AffectNet baselines (RMSE ≈ 0.39 valence / 0.38 arousal) [16].
+The regressor is a MobileNetV2 backbone [20] (inverted residual blocks with linear bottlenecks, input 224×224×3) followed by GlobalAveragePooling2D, Dense(1024, ReLU), and Dense(2, linear) (Fig. 4). The checkpoint stores weights only (`models/regressor_weights.h5`); the architecture is reconstructed in code before TFLite conversion (Section IV-B). The model was trained on the manually annotated subset of AffectNet [16] with valence and arousal targets in [-1, 1], and its upstream source reports test error comparable to the AffectNet baselines [16] (RMSE ≈ 0.39 valence / 0.38 arousal). This figure is inherited, not re-measured here.
 
 ```
  Input (224×224×3 RGB)
@@ -294,14 +306,14 @@ The regressor is a MobileNetV2 backbone [22] (inverted residual blocks with line
     └─ Dense(2, linear) → [valence, arousal]
 ```
 
-**Fig. 4.** MobileNetV2 with regression head [22]. `t` = expansion factor, `c` = output channels, `s` = stride.
+**Fig. 4.** MobileNetV2 with regression head [20]. `t` = expansion factor, `c` = output channels, `s` = stride.
 
 **TABLE V**
 **Dimensional Branch Specification**
 
 | Property | Value |
 |---|---|
-| Architecture | MobileNetV2 [22] + Dense(1024) + Dense(2) |
+| Architecture | MobileNetV2 [20] + Dense(1024) + Dense(2) |
 | Training dataset | AffectNet manual-annotation subset [16] |
 | Input | (1, 224, 224, 3) float32 RGB in [-1, 1] |
 | Output | (1, 2) linear: [valence, arousal], nominal range [-1, 1] |
@@ -329,12 +341,12 @@ a_t = α · a_raw + (1 − α) · a_(t−1)          with α = 0.3   (2)
 
 Step-response analysis: a coordinate reaches 50% of a step change after `n` frames where `(1−α)^n ≤ 0.5`, i.e., `n ≈ ln 0.5 / ln 0.7 ≈ 1.94` frames, and 90% after `0.7^n ≤ 0.1`, i.e., `n ≈ 6.46` frames. At 30 fps that is roughly 65 ms and 215 ms. Two consequences:
 
-- **Micro-expressions are deliberately suppressed.** Sub-second leakage fragments [3] fall inside this smoothing window; the engine tracks macro-expression trajectories, not micro-expression spikes. That is the correct scope for a continuous overlay, and it is a happy coincidence with the motivation: a system fascinated by micro-expressions should at least *know* it is filtering them out.
+- **Micro-expressions are deliberately suppressed.** Sub-second leakage fragments [3] fall inside this smoothing window; the engine tracks macro-expression trajectories, not micro-expression spikes. That is the intended scope for a continuous overlay. Capturing micro-expressions would require high-frame-rate capture and no smoothing, which is outside this system's design.
 - **State resets on face loss.** When no detection is present, the EMA state resets, so a new face's first frames are not contaminated by the previous occupant of the frame.
 
 #### 3) Russell consistency check
 
-Each of the 7 categorical classes is associated with an expected centroid `(μ_V, μ_A)` in VA space (Table VI), taken from the empirical AffectNet annotations [16]. The **conflict score** is the Euclidean distance between the smoothed VA position and the centroid of the class predicted by the categorical branch:
+Each of the 7 categorical classes is associated with an expected centroid `(μ_V, μ_A)` in VA space (Table VI). These values are intended to approximate per-category mean valence-arousal in AffectNet [16]. However, AffectNet does not publish per-category means, and no source for the specific numbers was located, so they should be treated as hand-estimated until recomputed from the AffectNet annotation files. The **conflict score** is the Euclidean distance between the smoothed VA position and the centroid of the class predicted by the categorical branch:
 
 ```
 CS = √[(v_t − μ_V(c))² + (a_t − μ_A(c))²]                    (3)
@@ -343,7 +355,7 @@ CS = √[(v_t − μ_V(c))² + (a_t − μ_A(c))²]                    (3)
 where `c` is the argmax class. A prediction is deemed **reliable** when `CS ≤ τ_CS` with `τ_CS = 0.5`.
 
 **TABLE VI**
-**Russell-Check Centroids per Categorical Class** [16]
+**Russell-Check Centroids per Categorical Class (Hand-Estimated; See Text)**
 
 | Index | Class | μ_Valence | μ_Arousal |
 |---|---|---|---|
@@ -359,27 +371,29 @@ Threshold analysis: adjacent-category centroids in Table VI sit 0.1–0.3 apart 
 
 #### 4) PAD-bridged Plutchik mapping (nearest centroid, with disambiguation)
 
-The smoothed point `(v_t, a_t)` is assigned to the nearest of the 8 Plutchik petal centroids (Table VII), which the repository documents as the (P, A) projections of Mehrabian's measured PAD word coordinates [14], [15]:
+The smoothed point `(v_t, a_t)` is assigned to the nearest of the 8 Plutchik petal centroids (Table VII). Where a source exists, these are the (P, A) projections of published PAD word ratings (Section II-D) [28]–[30]:
 
 ```
 petal = argmin_p ∈ P  ‖ (v_t, a_t) − (V_p, A_p) ‖₂          (4)
 ```
 
 **TABLE VII**
-**Plutchik Petal Centroids in VA Space (PAD Projection) [14], [15], with Intensity Labels**
+**Plutchik Petal Centroids in VA Space, Source Terms, and Intensity Labels**
 
-| Petal | V_p | A_p | Mild | Basic | Intense |
-|---|---|---|---|---|---|
-| Joy | +0.76 | +0.48 | Serenity | Joy | Ecstasy |
-| Trust | +0.52 | +0.20 | Acceptance | Trust | Admiration |
-| Fear | -0.64 | +0.60 | Apprehension | Fear | Terror |
-| Surprise | +0.14 | +0.67 | Distraction | Surprise | Amazement |
-| Sadness | -0.63 | -0.27 | Pensiveness | Sadness | Grief |
-| Disgust | -0.60 | +0.35 | Boredom | Disgust | Loathing |
-| Anger | -0.51 | +0.59 | Annoyance | Anger | Rage |
-| Anticipation | +0.22 | +0.62 | Interest | Anticipation | Vigilance |
+| Petal | V_p | A_p | Source term (P, A, D) [28]–[30] | Mild | Basic | Intense |
+|---|---|---|---|---|---|---|
+| Joy | +0.76 | +0.48 | *joyful* (.76, .48, .35) | Serenity | Joy | Ecstasy |
+| Trust | +0.52 | +0.20 | none located | Acceptance | Trust | Admiration |
+| Fear | -0.64 | +0.60 | *fearful* (-.64, .60, -.43) | Apprehension | Fear | Terror |
+| Surprise | +0.14 | +0.67 | *surprised* (.40, .67, -.13): valence mismatch | Distraction | Surprise | Amazement |
+| Sadness | -0.63 | -0.27 | *sad* (-.63, -.27, -.33) | Pensiveness | Sadness | Grief |
+| Disgust | -0.60 | +0.35 | *disgusted* (-.60, .35, .11) | Boredom | Disgust | Loathing |
+| Anger | -0.51 | +0.59 | *angry* (-.51, .59, .25) | Annoyance | Anger | Rage |
+| Anticipation | +0.22 | +0.62 | *curious* (.22, .62, -.01) | Interest | Anticipation | Vigilance |
 
-As established in Section II-D, Eq. 4 is underdetermined exactly where PAD's truncated Dominance axis mattered: Fear and Anger are 0.13 apart in (P, A), closer than any reasonable resolution. The engine handles this with **categorical disambiguation**: if the two smallest centroid distances differ by less than a margin `δ = 0.15`, and the categorical branch's petal (Table VIII) is one of the two tied petals, the tie resolves in its favor. This is psychologically sound: felt valence-arousal does not separate fear from anger (that is Dominance's job [14], [15]), but the *visible facial configuration* does, and that is what the categorical branch reads.
+V_p and A_p are the values used by the engine. The Dominance means for *disgusted* and *surprised* are reported in the source as not significantly different from zero.
+
+As established in Section II-D, Eq. 4 is underdetermined exactly where PAD's truncated Dominance axis mattered: Fear and Anger are 0.13 apart in (P, A), closer than any reasonable resolution. The engine handles this with **categorical disambiguation**: if the two smallest centroid distances differ by less than a margin `δ = 0.15`, and the categorical branch's petal (Table VIII) is one of the two tied petals, the tie resolves in its favor. This is psychologically sound: felt valence-arousal does not separate fear from anger (that is Dominance's job [28]), but the *visible facial configuration* does, and that is what the categorical branch reads.
 
 **TABLE VIII**
 **Categorical Class → Plutchik Petal Bridge**
@@ -394,19 +408,19 @@ As established in Section II-D, Eq. 4 is underdetermined exactly where PAD's tru
 | 5 | Surprise | Surprise |
 | 6 | Neutral | none (no Plutchik equivalent) |
 
-The margin `δ = 0.15` is not arbitrary; it is calibrated against the actual degeneracies of Table VII. Computing all pairwise petal-centroid distances:
+The margin `δ = 0.15` can be checked against the actual degeneracies of Table VII. Computing all pairwise petal-centroid distances:
 
 **TABLE IX**
 **Petal Pairs Within the Disambiguation Margin (δ = 0.15)**
 
 | Pair | Distance | Disambiguated by class bridge? |
 |---|---|---|
-| Surprise / Anticipation | 0.094 | No (neither petal is bridge-reachable) |
+| Surprise / Anticipation | 0.094 | Partially (Surprise ↔ class 5; Anticipation has no class) |
 | Fear / Anger | 0.130 | Yes (Fear ↔ class 2, Anger ↔ class 0) |
 | (next nearest: Fear / Disgust) | 0.253 | outside margin |
 | (next nearest: Anger / Disgust) | 0.256 | outside margin |
 
-Only two petal pairs in the PAD projection lie within δ = 0.15. Of these, Fear/Anger is fully handled by the categorical bridge (both classes exist in FER-2013), while Surprise/Anticipation cannot be tiebroken because Anticipation has no FER-2013 class (Table VIII): in that sliver of the plane the engine's assignment is geometry-only. A **neutral override** closes the mapping: if the categorical branch predicts Neutral and the smoothed VA magnitude `r < 0.2`, no petal is assigned (the label is simply "Neutral"), consistent with the circumplex reading of the origin as absence of strong affect [10].
+Only two petal pairs lie within δ = 0.15. Fear/Anger is fully handled by the categorical bridge, since both classes exist in FER-2013. Surprise/Anticipation is handled in one direction only: when the classifier predicts Surprise the tie resolves to Surprise, but no class can pull it toward Anticipation, so otherwise the assignment is geometry-only. This second near-tie is also partly an artifact of the unsourced Surprise valence: with the published *surprised* value (V = 0.40) [28], the pair would be 0.19 apart, outside the margin. The margin was therefore fit to the engine's own table rather than derived independently. A **neutral override** closes the mapping: if the categorical branch predicts Neutral and the smoothed VA magnitude `r < 0.2`, no petal is assigned (the label is simply "Neutral"), consistent with the circumplex reading of the origin as absence of strong affect [10].
 
 #### 5) Intensity inference
 
@@ -430,16 +444,18 @@ Compound emotions are inferred from the categorical branch's **softmax distribut
 p_1 < 0.5   ∧   (p_1 − p_2) < 0.15   ∧   petal(c_1) ≠ petal(c_2) ≠ none   (7)
 ```
 
-The unordered pair `{petal(c_1), petal(c_2)}` is looked up against the 16-dyad table (TABLE I); the dyad type (primary/secondary) is propagated. The thresholds have clear semantics: `p_1 < 0.5` means no confident single label exists (a genuine mixture, not a confident call), and a gap under 0.15 means the top two are statistically tied. The engine implements all 16 primary and secondary dyads; Plutchik's tertiary dyads are not implemented.
+The unordered pair `{petal(c_1), petal(c_2)}` is looked up against the 16-dyad table (TABLE I); the dyad type (primary/secondary) is propagated. The thresholds encode an intent: `p_1 < 0.5` means no confident single label exists, and a gap under 0.15 means the top two are nearly tied. Whether such a tie reflects a blend in the face or uncertainty in the model is not settled by the thresholds (see the caveat below). The engine implements all 16 primary and secondary dyads; Plutchik's tertiary dyads are not implemented.
 
-**Reachability.** Because the bridge (Table VIII) can only emit petals from {Anger, Disgust, Fear, Joy, Sadness, Surprise}, exactly 8 of the 16 implemented dyads can ever fire: Contempt (Disgust+Anger), Awe (Fear+Surprise), Remorse (Sadness+Disgust), Guilt (Joy+Fear), Despair (Fear+Sadness), Unbelief (Surprise+Disgust), Envy (Sadness+Anger), and Pride (Anger+Joy). The other 8 (Love, Submission, Aggressiveness, Optimism, Hope, Curiosity, Cynicism, and the Anticipation-bearing half of the table) involve Trust or Anticipation and are unreachable through the categorical bridge. They remain implemented for completeness, and would become reachable if the categorical model were extended to more classes (Section VI).
+**Reachability.** Because the bridge (Table VIII) can only emit petals from {Anger, Disgust, Fear, Joy, Sadness, Surprise}, exactly 9 of the 16 implemented dyads can ever fire: the primary dyads Awe (Fear+Surprise), Disapproval (Surprise+Sadness), Remorse (Sadness+Disgust), and Contempt (Disgust+Anger), and the secondary dyads Guilt (Joy+Fear), Despair (Fear+Sadness), Unbelief (Surprise+Disgust), Envy (Sadness+Anger), and Pride (Anger+Joy). The other 7 (Love, Submission, Aggressiveness, Optimism, Curiosity, Cynicism, Hope) involve Trust or Anticipation and are unreachable through the categorical bridge. They remain implemented for completeness, and would become reachable if the categorical model were extended to more classes (Section VI).
+
+**Caveat: softmax ambiguity versus blended emotion.** A near-tie between two classes admits two readings. Under the first, the face displays a genuine compound expression; Du et al. [31] and RAF-DB [32] show that such compounds exist as consistent production patterns. Under the second, the tie reflects uncertainty: low resolution, occlusion, pose, or the annotator disagreement that the model absorbed during training [37]–[39]. A single softmax vector cannot distinguish these readings. The reliability gate removes some uncertainty cases (those where valence-arousal contradicts the class), but not all. Dyad outputs should therefore be read as *hypotheses* of a blend, not detections. The question is testable: if the first reading dominates, the classifier's top-2 pairs should agree with the top-2 pairs of human annotator distributions on the same images, which FER+ [38] provides for FER-2013. This evaluation is planned (Section VI).
 
 #### 7) Output vocabulary: sixteen from eight
 
 The label algebra, counted precisely:
 
 - 8 basic petals × 3 intensity words = **24 petal words** (e.g., Annoyance, Anger, Rage);
-- + **16 dyad labels** (8 primary, 8 secondary, of which 8 are currently reachable);
+- + **16 dyad labels** (8 primary, 8 secondary, of which 9 are currently reachable);
 - + **Neutral**;
 - = **41 distinct output labels** in the engine's vocabulary, of which up to 3 display simultaneously per face per frame (base class + confidence, intensity word, dyad).
 
@@ -479,7 +495,7 @@ emot_future = executor.submit(run_emotion, grayFace.copy())
 va_future   = executor.submit(run_va, colorFace.copy())
 ```
 
-The main thread joins both results. Because the two TFLite interpreters execute in C++ and release the Python GIL during `invoke()` [27], the two branches overlap despite CPython's threading constraints, and the smaller emotion model's latency hides under the VA model's. ROI buffers are copied before submission to avoid mutation of numpy views during async resize.
+The main thread joins both results. Because the two TFLite interpreters execute in C++ and release the Python GIL during `invoke()` [27], the two branches can overlap despite CPython's threading constraints. ROI buffers are copied before submission to avoid mutation of numpy views during async resize. In practice the overlap yields no measurable speedup, because the emotion branch is about 12× cheaper than the VA branch (Section V-A, Table XIII).
 
 ---
 
@@ -524,7 +540,7 @@ The fused result drives a layered overlay per face: a bounding box colored by pe
 
 | Property | Categorical | Dimensional |
 |---|---|---|
-| Architecture | Mini Xception [8], [19] | MobileNetV2 + head [22] |
+| Architecture | Mini Xception [8], [19] | MobileNetV2 + head [20] |
 | Task | 7-way classification | 2-D regression |
 | Dataset | FER-2013 [7] | AffectNet [16] |
 | Input | 64×64 × 1ch | 224×224 × 3ch |
@@ -533,11 +549,28 @@ The fused result drives a layered overlay per face: a bounding box colored by pe
 | Output | Softmax over 7 | (valence, arousal) |
 | Output activation | Softmax | Linear |
 
-The two branches are asymptotically mismatched by design: the categorical model is 57–61× smaller than the dimensional one, so per-frame latency is dominated by the VA branch. The ThreadPoolExecutor arrangement (Section III-F) therefore yields roughly the latency of the VA branch alone, rather than the sum of both.
+The two branches are mismatched by design: the categorical model is 57–61× smaller than the dimensional one, so per-frame latency is dominated by the VA branch (Table XIII).
+
+**TABLE XIII**
+**Measured Per-Component Latency (One Face, CPU Only)**
+
+| Stage | Median (ms) | Mean (ms) | p95 (ms) |
+|---|---|---|---|
+| BlazeFace detection (720×480 frame) | 4.78 | 5.18 | 6.98 |
+| Emotion branch (preprocess + invoke) | 1.19 | 1.23 | 1.79 |
+| VA branch (preprocess + invoke) | 14.34 | 15.88 | 21.93 |
+| Both branches, sequential | 16.28 | 17.16 | 22.67 |
+| Both branches, parallel (2 threads) | 16.40 | 17.03 | 21.80 |
+| Fusion engine update | 0.04 | 0.04 | 0.07 |
+| **Full frame (detect + branches + fusion)** | **20.51** | **21.27** | **28.78** |
+
+Measured with `eval/benchmark_latency.py`: 300 iterations after 30 warm-up iterations, on an Intel Core i5-1035G7 (4 cores, 8 threads, laptop), Windows 11, Python 3.12.10, TensorFlow 2.21.0 (XNNPACK CPU delegate), MediaPipe 1.1.0, OpenCV 5.0.0, using the repository image `carly.png` with one BlazeFace-detected face. Camera capture and overlay rendering are excluded.
+
+Two results follow. First, the full pipeline runs at a median of 20.5 ms per frame for one face, i.e., about 49 FPS before capture and rendering, so the real-time claim holds on a mid-range laptop CPU. Second, **the thread-pool parallelism provides no measurable benefit**: parallel and sequential execution of the two branches are within noise (16.40 vs. 16.28 ms median, a 0.99× ratio). The emotion branch costs only about 1.2 ms, so the most that overlapping it with the VA branch could save is about 1.2 ms, and thread dispatch overhead consumes that. The concurrency design of Section III-F is therefore architecturally clean but not a performance contribution.
 
 ### B. TFLite Conversion Results
 
-**TABLE XIII**
+**TABLE XIV**
 **Conversion Outcomes**
 
 | Model | Source artifact | Source size | TFLite size | Reduction |
@@ -547,9 +580,9 @@ The two branches are asymptotically mismatched by design: the categorical model 
 
 The emotion model's large reduction reflects HDF5's storage of architecture metadata, optimizer state, and training config, all stripped by the FlatBuffer; the VA weights file was already lean, so its reduction is marginal.
 
-### C. Qualitative Fusion Behavior
+### C. Expected Fusion Behavior
 
-Observed behaviors of the fused pipeline, with mechanism attributions:
+The behaviors below are derived from the engine's logic and the worked traces of Table X. They describe what the design produces, not measurements on labeled data; quantitative evaluation is future work (Section VI).
 
 - **Stable trajectories.** Eq. 2's EMA (α = 0.3) removes most per-frame flicker of the raw regressor; petal colors transition smoothly rather than strobing.
 - **Self-flagged disagreement.** When the classifier labels a face "Sad" while the regressor reports positive valence, `CS > τ_CS` in Eq. 3, the overlay dims and appends an asterisk, and dyad detection is suppressed (Eq. 7's reliability gate). The system degrades gracefully by reporting disagreement rather than committing to a wrong compound label.
@@ -558,25 +591,26 @@ Observed behaviors of the fused pipeline, with mechanism attributions:
 
 ### D. Positioning Relative to Related Systems
 
-Single-representation baselines report FER-2013 accuracy of ~66% for this architecture family [8] and AffectNet valence-arousal RMSE of ~0.39/0.38 [16]; those figures bound the fused system's component accuracy, since fusion is a post-hoc rule layer over both models and neither branch is fine-tuned for fusion. The value added is **representational**: intensity tiers, compound labels, and a reliability signal that neither branch can produce alone, at negligible additional compute (the fusion engine is O(1) numpy per frame). In the author's own extended testing, the system's most frequent verdict on its developer was Joy.
+The source of the categorical architecture reports ~66% FER-2013 accuracy [8], and the upstream source of the VA checkpoint reports RMSE of ~0.39/0.38, comparable to the AffectNet baselines [16]. Neither figure has been re-measured in this work. Those figures bound the fused system's component accuracy, since fusion is a post-hoc rule layer and neither branch is fine-tuned for it. The intended value added is **representational**: intensity tiers, compound labels, and a reliability signal that neither branch produces alone, at negligible additional compute (the fusion engine is O(1) numpy per frame). Relative to joint models such as EmoNet [34], this system is expected to be less accurate per representation. Its distinguishing properties are the explicit disagreement signal and the psychologically structured label output, and both remain to be validated quantitatively.
 
 ---
 
 ## VI. Limitations and Future Work
 
-1. **The truncated Dominance axis.** The single deepest limitation is architectural: PAD's third dimension, the one that separates Fear (low D) from Anger (high D) in Mehrabian's measurements [14], [15], is absent from the pipeline. The engine's Fear/Anger disambiguation (Section III-E4) delegates to the categorical branch, which mitigates but does not resolve the degeneracy. The principled fix is a three-dimensional (P, A, D) regressor; AffectNet does not annotate Dominance, so this requires either a new annotation source or an ordinal proxy (e.g., a gaze/pose-derived control signal).
-2. **Unreachable petals and dyads.** Trust and Anticipation have no FER-2013 class (Table VIII), so they are reachable only via pure VA proximity, never via disambiguation, and 8 of the 16 implemented dyads can never fire (Section III-E6). A categorical model trained on a richer label set (e.g., an 8-class Plutchik-aligned corpus, or GoEmotions-style affect labels) would activate the full dyad table without changing the engine.
-3. **Population-level centroids.** Tables VI and VII are population averages [14], [15], [16]; individual differences in expressive style [6] are unmodeled. The thresholds (τ_CS = 0.5, δ = 0.15, radii 0.33/0.66, dyad 0.5/0.15) are hand-set and fit to the centroid geometry rather than to held-out data. Person-specific calibration is an obvious extension.
+1. **The truncated Dominance axis.** The single deepest limitation is architectural: PAD's third dimension, the one that separates Fear (low D) from Anger (high D) in PAD word ratings [28], is absent from the pipeline. The engine's Fear/Anger disambiguation (Section III-E4) delegates to the categorical branch, which mitigates but does not resolve the degeneracy. The principled fix is a three-dimensional (P, A, D) regressor; AffectNet does not annotate Dominance, so this requires either a new annotation source or an ordinal proxy (e.g., a gaze/pose-derived control signal).
+2. **Unreachable petals and dyads.** Trust and Anticipation have no FER-2013 class (Table VIII), so they are reachable only via pure VA proximity, never via disambiguation, and 7 of the 16 implemented dyads can never fire (Section III-E6). A categorical model trained on a richer label set (e.g., an 8-class Plutchik-aligned corpus, or GoEmotions-style affect labels) would activate the full dyad table without changing the engine.
+3. **Centroid provenance.** Table VII consists of population-average *word* ratings [28], with one entry contradicting its source (Surprise valence) and one unsourced (Trust). Table VI is hand-estimated (Section III-E3) and should be recomputed from AffectNet annotations. Individual differences in expressive style [6] are unmodeled. The thresholds (τ_CS = 0.5, δ = 0.15, radii 0.33/0.66, dyad 0.5/0.15) are hand-set and fit to the centroid geometry rather than to held-out data. Person-specific calibration is an obvious extension.
 4. **Dataset noise and bias.** FER-2013 carries well-documented label noise and class imbalance (Happy overrepresented, Disgust scarce) [7]; AffectNet annotations are subjective with imperfect inter-rater agreement [16]. Both upstream artifacts are consumed as-is, without demographic audit, so the system inherits whatever biases they encode.
 5. **Single-face EMA state.** The engine keeps one EMA pair; with multiple simultaneous faces, smoothing state may blend across identities when detection order changes. Per-track state keyed on face identity (tracking-by-detection, using BlazeFace landmarks for cheap association) is straightforward future work.
-6. **GIL-bounded parallelism.** The thread pool overlaps the two interpreters only because TFLite's C++ kernel releases the GIL [27]; scaling to many faces would benefit from process pools or a batched single-interpreter design.
-7. **No quantitative fusion evaluation.** The fusion layer is evaluated qualitatively; a held-out protocol (agreement of dyad labels with human annotation on a blend-labeled corpus, and calibration analysis of the conflict score against observed misclassifications) remains open.
+6. **Concurrency gives no speedup.** The thread pool releases the GIL during `invoke()` [27], but with a 1.2 ms emotion branch there is almost nothing to overlap (Table XIII). Gains would only appear with many faces per frame, which would call for batched inference or process pools.
+7. **No quantitative fusion evaluation yet.** The fusion layer is described, not measured. Three evaluations are implemented in `eval/evaluate_fer.py` and await the FER-2013 data. (a) *Conflict score as an error detector*: on FER-2013 PrivateTest images, the AUROC of the conflict score for predicting classifier misclassification, against max-softmax, entropy, and top-2 margin baselines, using both the shipped centroids and centroids fitted on PublicTest. (b) *Softmax ambiguity versus annotator ambiguity*: the agreement between the classifier's top-2 pairs and the top-2 pairs of the FER+ annotator distributions [38], against a permutation baseline. (c) *Threshold ablations* over τ_CS and the dyad thresholds. An unmodified EmoNet [34] baseline is implemented in `eval/emonet_baseline.py`. Evaluating dyads against true compound labels [31], [32] would further strengthen the work.
+8. **Inherited metrics.** The ~66% classifier accuracy and ~0.39/0.38 VA RMSE are reported by upstream sources and have not been re-measured on the exact artifacts in this repository.
 
 ---
 
 ## VII. Conclusion
 
-This project set out to take faces as seriously as they deserve: not as seven mutually exclusive checkboxes, but as a dense, continuous, combinatorial signal sitting on top of a universal low-dimensional structure. The engineering expression of that stance is a pipeline that runs a categorical classifier (Mini Xception, FER-2013) and a dimensional regressor (MobileNetV2, AffectNet) concurrently per face, and fuses them through classical psychological structure: Russell's circumplex for geometric consistency checking [10], Plutchik's wheel for intensity and compound-emotion semantics [11], [12], and Mehrabian's PAD coordinates as the measured, metric bridge between continuous geometry and discrete labels [13], [14], [15]. The resulting system reports not just *what* emotion a face shows, but *how strongly* (intensity tiers), *how reliably* (conflict score), and, when the evidence supports it, *what blend* (dyads): a 41-label vocabulary produced from 8 petals, sixteen of which (8 basic plus 8 primary dyads) are the theory's own arithmetic. Total model cost is 14.2 MB, and per-frame latency is roughly that of a single MobileNetV2 inference, on commodity CPU hardware. The components are open artifacts in this repository, and the engine's clean dataclass contract makes the natural next steps concrete: 3-D PAD regression to restore the missing Dominance axis, per-face temporal state, and a formal evaluation of fusion quality.
+This project set out to take faces as seriously as they deserve: not as seven mutually exclusive checkboxes, but as a dense, continuous, combinatorial signal sitting on top of a universal low-dimensional structure. The engineering expression of that stance is a pipeline that runs a categorical classifier (Mini Xception, FER-2013) and a dimensional regressor (MobileNetV2, AffectNet) concurrently per face, and fuses them through classical psychological structure: Russell's circumplex for geometric consistency checking [10], Plutchik's wheel for intensity and compound-emotion semantics [11], [12], and published PAD word ratings as the metric bridge between continuous geometry and discrete labels [13], [28]. The resulting system reports not just *what* emotion a face shows, but *how strongly* (intensity tiers), *how reliably* (conflict score), and, when the evidence supports it, *what blend* (dyads): a 41-label vocabulary produced from 8 petals, sixteen of which (8 basic plus 8 primary dyads) are the theory's own arithmetic. Total model cost is 14.2 MB, and the full pipeline runs at a median of 20.5 ms per frame for one face on a 4-core laptop CPU (Table XIII). The fusion layer's claimed benefits, the reliability signal above all, still await quantitative validation (Section VI). The components are open artifacts in this repository, and the engine's clean dataclass contract makes the natural next steps concrete: 3-D PAD regression to restore the missing Dominance axis, per-face temporal state, and a formal evaluation of fusion quality.
 
 ---
 
@@ -586,13 +620,13 @@ This project set out to take faces as seriously as they deserve: not as seven mu
 
 [2] A. J. Fridlund, *Human Facial Expression: An Evolutionary View*. San Diego, CA, USA: Academic Press, 1994.
 
-[3] P. Ekman and W. V. Friesen, "Nonverbal leakage and clues to deception," *Psychiatry*, vol. 32, no. 1, pp. 88–105, 1969.
+[3] P. Ekman and W. V. Friesen, "Nonverbal leakage and clues to deception," *Psychiatry*, vol. 32, no. 1, pp. 88–106, 1969, doi: 10.1080/00332747.1969.11023575.
 
-[4] P. Ekman, E. R. Sorenson, and W. V. Friesen, "Pan-cultural elements in facial expressions of emotion," *Science*, vol. 164, no. 3878, pp. 86–88, 1969.
+[4] P. Ekman, E. R. Sorenson, and W. V. Friesen, "Pan-cultural elements in facial displays of emotion," *Science*, vol. 164, no. 3875, pp. 86–88, 1969, doi: 10.1126/science.164.3875.86.
 
-[5] P. Ekman and W. V. Friesen, *Facial Action Coding System: A Technique for the Measurement of Facial Action*. Palo Alto, CA, USA: Consulting Psychologists Press, 1978.
+[5] P. Ekman and W. V. Friesen, *Facial Action Coding System: A Technique for the Measurement of Facial Movement*. Palo Alto, CA, USA: Consulting Psychologists Press, 1978.
 
-[6] H. A. Elfenbein and N. Ambady, "On the universality and cultural specificity of emotion recognition: A meta-analysis," *Psychol. Bull.*, vol. 128, no. 2, pp. 203–235, 2002.
+[6] H. A. Elfenbein and N. Ambady, "On the universality and cultural specificity of emotion recognition: A meta-analysis," *Psychol. Bull.*, vol. 128, no. 2, pp. 203–235, 2002, doi: 10.1037/0033-2909.128.2.203.
 
 [7] I. J. Goodfellow, D. Erhan, P. L. Carrier, A. Courville, M. Mirza, B. Hamner, W. Cukierski, Y. Tang, D. Thaler, D.-H. Lee, Y. Zhou, C. Ramaiah, F. Feng, R. Li, X. Wang, D. Athanasakis, J. Shawe-Taylor, M. Milakov, J. Park, R. Ionescu, M. Popescu, C. Grozea, J. Bergstra, J. Xie, L. Romaszko, B. Xu, Z. Chuang, and Y. Bengio, "Challenges in representation learning: A report on three machine learning contests," in *Proc. ICML Workshop Challenges Represent. Learn.*, Atlanta, GA, USA, 2013. [Online]. Available: https://arxiv.org/abs/1307.0414
 
@@ -610,7 +644,7 @@ This project set out to take faces as seriously as they deserve: not as seven mu
 
 [14] A. Mehrabian, "Framework for a comprehensive description and measurement of emotional states," *Genet. Soc. Gen. Psychol. Monogr.*, vol. 121, no. 3, pp. 339–361, 1995.
 
-[15] A. Mehrabian, "Pleasure-arousal-dominance: A general framework for describing and measuring individual differences in temperament," *Current Psych.*, vol. 14, no. 4, pp. 261–292, 1996.
+[15] A. Mehrabian, "Pleasure-arousal-dominance: A general framework for describing and measuring individual differences in temperament," *Current Psych.*, vol. 14, no. 4, pp. 261–292, 1996, doi: 10.1007/BF02686918.
 
 [16] A. Mollahosseini, B. Hasani, and M. H. Mahoor, "AffectNet: A database for facial expression, valence, and arousal computing in the wild," *IEEE Trans. Affect. Comput.*, vol. 10, no. 1, pp. 18–31, 2019, doi: 10.1109/TAFFC.2017.2740923.
 
@@ -622,7 +656,7 @@ This project set out to take faces as seriously as they deserve: not as seven mu
 
 [20] M. Sandler, A. Howard, M. Zhu, A. Zhmoginov, and L.-C. Chen, "MobileNetV2: Inverted residuals and linear bottlenecks," in *Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)*, Salt Lake City, UT, USA, 2018, pp. 4510–4520. [Online]. Available: https://arxiv.org/abs/1801.04381
 
-[21] S. S. Tomkins, *Affect Imagery Consciousness: Vol. I. The Positive Affects*. New York, NY, USA: Springer, 1962.
+[21] S. S. Tomkins, *Affect, Imagery, Consciousness: Vol. I. The Positive Affects*. New York, NY, USA: Springer, 1962.
 
 [22] C. E. Izard, *The Face of Emotion*. New York, NY, USA: Appleton-Century-Crofts, 1971.
 
@@ -632,10 +666,34 @@ This project set out to take faces as seriously as they deserve: not as seven mu
 
 [25] A. Semeraro, S. Vilella, and G. Ruffo, "PyPlutchik: Visualising and comparing emotion-annotated corpora," *PLOS ONE*, vol. 16, no. 9, p. e0256503, 2021, doi: 10.1371/journal.pone.0256503.
 
-[26] K. R. Scherer, "On the nature and function of emotion: A component process model approach," in *Approaches to Emotion*, K. R. Scherer and P. Ekman, Eds. Hillsdale, NJ, USA: Erlbaum, 1984.
+[26] K. R. Scherer, "On the nature and function of emotion: A component process approach," in *Approaches to Emotion*, K. R. Scherer and P. Ekman, Eds. Hillsdale, NJ, USA: Erlbaum, 1984, pp. 293–317.
 
 [27] TensorFlow Authors, "TensorFlow Lite converter and interpreter," *TensorFlow Documentation*. [Online]. Available: https://www.tensorflow.org/lite
 
+[28] J. A. Russell and A. Mehrabian, "Evidence for a three-factor theory of emotions," *J. Res. Pers.*, vol. 11, pp. 273–294, 1977, doi: 10.1016/0092-6566(77)90037-X.
+
+[29] C. Becker-Asano, "WASABI: Affect simulation for agents with believable interactivity," Ph.D. dissertation, Univ. Bielefeld, Bielefeld, Germany, 2008, Table 2.4. [Online]. Available: https://gki.informatik.uni-freiburg.de/papers/becker-asano-phdthesis2008.pdf
+
+[30] A. Mehrabian, "The PAD comprehensive emotion tests." [Online]. Available: http://www.kaaj.com/psych/scales/emotion.html
+
+[31] S. Du, Y. Tao, and A. M. Martinez, "Compound facial expressions of emotion," *Proc. Nat. Acad. Sci. USA*, vol. 111, no. 15, pp. E1454–E1462, 2014, doi: 10.1073/pnas.1322355111.
+
+[32] S. Li, W. Deng, and J. Du, "Reliable crowdsourcing and deep locality-preserving learning for expression recognition in the wild," in *Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)*, 2017, pp. 2584–2593, doi: 10.1109/CVPR.2017.277.
+
+[33] S. Li and W. Deng, "Reliable crowdsourcing and deep locality-preserving learning for unconstrained facial expression recognition," *IEEE Trans. Image Process.*, vol. 28, no. 1, pp. 356–370, 2019, doi: 10.1109/TIP.2018.2868382.
+
+[34] A. Toisoul, J. Kossaifi, A. Bulat, G. Tzimiropoulos, and M. Pantic, "Estimation of continuous valence and arousal levels from faces in naturalistic conditions," *Nat. Mach. Intell.*, vol. 3, no. 1, pp. 42–50, 2021, doi: 10.1038/s42256-020-00280-0.
+
+[35] D. Kollias and S. Zafeiriou, "Expression, affect, action unit recognition: Aff-Wild2, multi-task learning and ArcFace," in *Proc. British Mach. Vis. Conf. (BMVC)*, 2019. [Online]. Available: https://arxiv.org/abs/1910.04855
+
+[36] D. Kollias, A. Schulc, E. Hajiyev, and S. Zafeiriou, "Analysing affective behavior in the first ABAW 2020 competition," in *Proc. 15th IEEE Int. Conf. Autom. Face Gesture Recognit. (FG)*, 2020, pp. 637–643, doi: 10.1109/FG47880.2020.00126.
+
+[37] K. Wang, X. Peng, J. Yang, S. Lu, and Y. Qiao, "Suppressing uncertainties for large-scale facial expression recognition," in *Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)*, 2020, pp. 6896–6905, doi: 10.1109/CVPR42600.2020.00693.
+
+[38] E. Barsoum, C. Zhang, C. Canton Ferrer, and Z. Zhang, "Training deep networks for facial expression recognition with crowd-sourced label distribution," in *Proc. 18th ACM Int. Conf. Multimodal Interact. (ICMI)*, 2016, pp. 279–283, doi: 10.1145/2993148.2993165.
+
+[39] S. Chen, J. Wang, Y. Chen, Z. Shi, X. Geng, and Y. Rui, "Label distribution learning on auxiliary label space graphs for facial expression recognition," in *Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)*, 2020, pp. 13981–13990, doi: 10.1109/CVPR42600.2020.01400.
+
 ---
 
-*All architecture parameters, hyperparameters, artifact sizes, preprocessing details, and fusion logic in this report are transcribed from and verified against the repository source: `emot_recog/facecombined.py`, `emot_recog/affect_fusion.py`, `emot_recog/facemot.py`, `emot_recog/faceva.py`, `emot_recog/convert_to_tflite.py`, `emot_recog/convert_va_to_tflite.py`, and `reqs.txt`. Psychological framework details and all citations were verified against the primary literature during preparation; the historical lineage (Wundt → Schlosberg → Mehrabian/Russell → Russell; Tomkins → Izard → Ekman/Friesen; Plutchik 1980) follows the standard account in the cited sources.*
+*Architecture parameters, hyperparameters, artifact sizes, preprocessing details, and fusion logic are transcribed from the repository source (`emot_recog/facecombined.py`, `emot_recog/affect_fusion.py`, `emot_recog/facemot.py`, `emot_recog/faceva.py`, `emot_recog/convert_to_tflite.py`, `emot_recog/convert_va_to_tflite.py`, `reqs.txt`). Citations were checked against Crossref, OpenAlex, arXiv, and library catalogs. Remaining uncertainties: the subtitle of [5] and the page range of [26] are confirmed only by secondary sources, and the PAD values of [28] were read from the reproduction in [29] rather than the original table.*
