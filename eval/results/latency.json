@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "cpu_count": 8,
+    "python": "3.12.10",
+    "tensorflow": "2.21.0",
+    "mediapipe": "1.1.0",
+    "opencv": "5.0.0",
+    "numpy": "2.4.4",
+    "image": "carly.png",
+    "face_source": "blazeface",
+    "face_box": [
+      335,
+      170,
+      192,
+      192
+    ],
+    "iters": 300,
+    "warmup": 30
+  },
+  "results": {
+    "blazeface_detect": {
+      "mean_ms": 5.177572334650904,
+      "median_ms": 4.783550015417859,
+      "p95_ms": 6.978499994147569,
+      "min_ms": 3.4991000429727137,
+      "n": 300
+    },
+    "emotion_branch": {
+      "mean_ms": 1.2340540012034278,
+      "median_ms": 1.1912000190932304,
+      "p95_ms": 1.792200026102364,
+      "min_ms": 0.6431000074371696,
+      "n": 300
+    },
+    "va_branch": {
+      "mean_ms": 15.874985332484357,
+      "median_ms": 14.341850008349866,
+      "p95_ms": 21.926699962932616,
+      "min_ms": 10.831799998413771,
+      "n": 300
+    },
+    "branches_sequential": {
+      "mean_ms": 17.160223000488866,
+      "median_ms": 16.275900037726387,
+      "p95_ms": 22.667500015813857,
+      "min_ms": 11.6719999932684,
+      "n": 300
+    },
+    "branches_parallel": {
+      "mean_ms": 17.02807133280051,
+      "median_ms": 16.397500003222376,
+      "p95_ms": 21.797999972477555,
+      "min_ms": 12.13300001109019,
+      "n": 300
+    },
+    "fusion_update": {
+      "mean_ms": 0.04435666662175208,
+      "median_ms": 0.0371999922208488,
+      "p95_ms": 0.06629998097196221,
+      "min_ms": 0.03450002986937761,
+      "n": 300
+    },
+    "full_frame_one_face": {
+      "mean_ms": 21.271053001401015,
+      "median_ms": 20.508549991063774,
+      "p95_ms": 28.775999962817878,
+      "min_ms": 11.978199996519834,
+      "n": 300
+    }
+  }
+}
