@@ -21,7 +21,7 @@ This project instead grounds its analysis in a small stack of classic affect fra
 
 The remaining components are standard computer vision: MediaPipe BlazeFace, Mini Xception, MobileNetV2 (regression). Together they yield a psychologically grounded, current analysis of the emotions displayed by the human face.
 
-Full academic write-up (IEEE format, theory lineage, and equations): [iee_project_report.md](iee_project_report.md)
+Full academic write-up (IEEE format, theory lineage, and equations): [ieee_project_report.md](ieee_project_report.md)
 
 ## Tech Stack
 
