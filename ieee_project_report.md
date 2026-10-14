@@ -1,7 +1,7 @@
 # Real-Time Dual-Model Facial Affect Analysis via Fusion of Categorical and Dimensional Predictions Using Russell's Circumplex, Plutchik's Wheel of Emotions, and Mehrabian's PAD Framework
 
-**lemon**
 Manipal Academy of Higher Education
+
 October 14, 2026
 
 ---
@@ -123,24 +123,24 @@ Counting labels: eight basic emotions plus eight primary dyads form sixteen dist
 **TABLE I**
 **Plutchik Primary and Secondary Dyads** [11], [12]
 
-| Type | Components | Dyad |
-|---|---|---|
-| Primary | Joy + Trust | Love |
-| Primary | Trust + Fear | Submission |
-| Primary | Fear + Surprise | Awe |
-| Primary | Surprise + Sadness | Disapproval |
-| Primary | Sadness + Disgust | Remorse |
-| Primary | Disgust + Anger | Contempt |
-| Primary | Anger + Anticipation | Aggressiveness |
-| Primary | Anticipation + Joy | Optimism |
-| Secondary | Joy + Fear | Guilt |
-| Secondary | Trust + Surprise | Curiosity |
-| Secondary | Fear + Sadness | Despair |
-| Secondary | Surprise + Disgust | Unbelief |
-| Secondary | Sadness + Anger | Envy |
-| Secondary | Disgust + Anticipation | Cynicism |
-| Secondary | Anger + Joy | Pride |
-| Secondary | Anticipation + Trust | Hope |
+| Type      | Components             | Dyad           |
+| --------- | ---------------------- | -------------- |
+| Primary   | Joy + Trust            | Love           |
+| Primary   | Trust + Fear           | Submission     |
+| Primary   | Fear + Surprise        | Awe            |
+| Primary   | Surprise + Sadness     | Disapproval    |
+| Primary   | Sadness + Disgust      | Remorse        |
+| Primary   | Disgust + Anger        | Contempt       |
+| Primary   | Anger + Anticipation   | Aggressiveness |
+| Primary   | Anticipation + Joy     | Optimism       |
+| Secondary | Joy + Fear             | Guilt          |
+| Secondary | Trust + Surprise       | Curiosity      |
+| Secondary | Fear + Sadness         | Despair        |
+| Secondary | Surprise + Disgust     | Unbelief       |
+| Secondary | Sadness + Anger        | Envy           |
+| Secondary | Disgust + Anticipation | Cynicism       |
+| Secondary | Anger + Joy            | Pride          |
+| Secondary | Anticipation + Trust   | Hope           |
 
 One geometric warning is essential, and Semeraro et al. [25] state it plainly: spatial proximity in the wheel is semantic proximity, but the wheel is **not** a valence-arousal plot. Adjacent petals are semantically adjacent, but distinct petals can map to nearly identical valence-arousal coordinates, Fear and Anger being the canonical example. Any system that assigns Plutchik labels from valence-arousal coordinates must therefore handle that degeneracy explicitly (Section III-E4).
 
@@ -159,11 +159,11 @@ The PAD model is the load-bearing bridge of this project, so it deserves its own
 **TABLE II**
 **The PAD Dimensions and Their Role in This Project**
 
-| Dimension | Semantic-differential anchors | Construct | Role here |
-|---|---|---|---|
-| Pleasure (P) | happy ... unhappy | valence | Axis 1 of the regressor output |
-| Arousal (A) | stimulated ... relaxed | activation | Axis 2 of the regressor output |
-| Dominance (D) | controlling ... controlled | power, control | **Truncated.** The axis that separates Fear (low D) from Anger (high D) in PAD word ratings [28] |
+| Dimension     | Semantic-differential anchors | Construct      | Role here                                                                                              |
+| ------------- | ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| Pleasure (P)  | happy ... unhappy             | valence        | Axis 1 of the regressor output                                                                         |
+| Arousal (A)   | stimulated ... relaxed        | activation     | Axis 2 of the regressor output                                                                         |
+| Dominance (D) | controlling ... controlled    | power, control | **Truncated.** The axis that separates Fear (low D) from Anger (high D) in PAD word ratings [28] |
 
 **Why Dominance matters, and what its absence costs.** In the published PAD word ratings, *fearful* and *angry* have nearly coincident (P, A) coordinates (Table VII: (-0.64, +0.60) and (-0.51, +0.59), Euclidean distance 0.13) but opposite-signed Dominance (D = -0.43 and +0.25 respectively) [28]. The two-dimensional pipeline here inherits exactly this degeneracy: felt valence-arousal cannot tell terror from rage; only the face (through the categorical branch) or Dominance (absent) can. This is not a bug in the mapping; it is a documented property of the affect space itself [25], [28], and the engine's disambiguation logic (Section III-E4) is designed around it.
 
@@ -249,14 +249,14 @@ BlazeFace short-range (Table III) provides axis-aligned bounding boxes. When no 
 **TABLE III**
 **Face Detector Configuration**
 
-| Property | Value |
-|---|---|
-| Model | BlazeFace short-range [17] |
-| Runtime | MediaPipe Tasks API (`mp.tasks.vision.FaceDetector`) |
-| Artifact | `models/blaze_face_short_range.tflite` (225 KB) |
-| Minimum detection confidence | 0.5 |
-| Input format | RGB frame (`mp.Image`, `SRGB`) |
-| Output | Bounding boxes (origin clamped to ≥ 0) |
+| Property                     | Value                                                  |
+| ---------------------------- | ------------------------------------------------------ |
+| Model                        | BlazeFace short-range [17]                             |
+| Runtime                      | MediaPipe Tasks API (`mp.tasks.vision.FaceDetector`) |
+| Artifact                     | `models/blaze_face_short_range.tflite` (225 KB)      |
+| Minimum detection confidence | 0.5                                                    |
+| Input format                 | RGB frame (`mp.Image`, `SRGB`)                     |
+| Output                       | Bounding boxes (origin clamped to ≥ 0)                |
 
 ### C. Categorical Branch: Mini Xception
 
@@ -280,16 +280,16 @@ The classifier is a compact Xception variant [8], [19]: two 3×3 convolutions (8
 **TABLE IV**
 **Categorical Branch Specification**
 
-| Property | Value |
-|---|---|
-| Architecture | Mini Xception [8], [19] |
-| Training dataset | FER-2013 (35,887 images, 48×48 grayscale) [7] |
-| Reported top accuracy (source) | ~66% [8] |
-| Input | (1, 64, 64, 1) float32 in [-1, 1] |
-| Output | (1, 7) softmax |
-| Classes | 0: Angry, 1: Disgust, 2: Fear, 3: Happy, 4: Sad, 5: Surprise, 6: Neutral |
-| Total parameters | 58,423 (1,472 non-trainable BN) |
-| TFLite artifact | `models/emotionModel.tflite` (235.6 KB) |
+| Property                       | Value                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| Architecture                   | Mini Xception [8], [19]                                                  |
+| Training dataset               | FER-2013 (35,887 images, 48×48 grayscale) [7]                           |
+| Reported top accuracy (source) | ~66% [8]                                                                 |
+| Input                          | (1, 64, 64, 1) float32 in [-1, 1]                                        |
+| Output                         | (1, 7) softmax                                                           |
+| Classes                        | 0: Angry, 1: Disgust, 2: Fear, 3: Happy, 4: Sad, 5: Surprise, 6: Neutral |
+| Total parameters               | 58,423 (1,472 non-trainable BN)                                          |
+| TFLite artifact                | `models/emotionModel.tflite` (235.6 KB)                                |
 
 ### D. Dimensional Branch: MobileNetV2 Valence-Arousal Regressor
 
@@ -312,14 +312,14 @@ The regressor is a MobileNetV2 backbone [20] (inverted residual blocks with line
 **TABLE V**
 **Dimensional Branch Specification**
 
-| Property | Value |
-|---|---|
-| Architecture | MobileNetV2 [20] + Dense(1024) + Dense(2) |
-| Training dataset | AffectNet manual-annotation subset [16] |
-| Input | (1, 224, 224, 3) float32 RGB in [-1, 1] |
-| Output | (1, 2) linear: [valence, arousal], nominal range [-1, 1] |
-| Total parameters | 3,571,778 (34,112 non-trainable BN) |
-| TFLite artifact | `models/vaModel.tflite` (13.8 MB) |
+| Property         | Value                                                    |
+| ---------------- | -------------------------------------------------------- |
+| Architecture     | MobileNetV2 [20] + Dense(1024) + Dense(2)                |
+| Training dataset | AffectNet manual-annotation subset [16]                  |
+| Input            | (1, 224, 224, 3) float32 RGB in [-1, 1]                  |
+| Output           | (1, 2) linear: [valence, arousal], nominal range [-1, 1] |
+| Total parameters | 3,571,778 (34,112 non-trainable BN)                      |
+| TFLite artifact  | `models/vaModel.tflite` (13.8 MB)                      |
 
 The final activation is linear, so predictions are unbounded and may slightly exceed [-1, 1]; downstream fusion is safe by construction (all centroids and thresholds are defined on [-1, 1]).
 
@@ -358,15 +358,15 @@ where `c` is the argmax class. A prediction is deemed **reliable** when `CS ≤ 
 **TABLE VI**
 **Russell-Check Centroids per Categorical Class (Hand-Estimated; See Text)**
 
-| Index | Class | μ_Valence | μ_Arousal |
-|---|---|---|---|
-| 0 | Angry | -0.45 | +0.31 |
-| 1 | Disgust | -0.48 | +0.22 |
-| 2 | Fear | -0.36 | +0.38 |
-| 3 | Happy | +0.55 | +0.28 |
-| 4 | Sad | -0.41 | -0.12 |
-| 5 | Surprise | +0.13 | +0.45 |
-| 6 | Neutral | +0.02 | -0.05 |
+| Index | Class    | μ_Valence | μ_Arousal |
+| ----- | -------- | ---------- | ---------- |
+| 0     | Angry    | -0.45      | +0.31      |
+| 1     | Disgust  | -0.48      | +0.22      |
+| 2     | Fear     | -0.36      | +0.38      |
+| 3     | Happy    | +0.55      | +0.28      |
+| 4     | Sad      | -0.41      | -0.12      |
+| 5     | Surprise | +0.13      | +0.45      |
+| 6     | Neutral  | +0.02      | -0.05      |
 
 Threshold analysis: adjacent-category centroids in Table VI sit 0.1–0.3 apart (e.g., Angry/Disgust 0.095, Angry/Fear 0.114), while gross cross-quadrant errors put the smoothed point ~1.0 away (e.g., Happy/Sad 1.04). `τ_CS = 0.5` therefore sits well above neighborhood uncertainty and well below categorical contradiction: it fires precisely when the two representations *disagree about the kind of affect*, not when they disagree about minor degree. Reliability gates dyad detection (Section III-E6) and dims the overlay when it fails.
 
@@ -381,16 +381,16 @@ petal = argmin_p ∈ P  ‖ (v_t, a_t) − (V_p, A_p) ‖₂          (4)
 **TABLE VII**
 **Plutchik Petal Centroids in VA Space, Source Terms, and Intensity Labels**
 
-| Petal | V_p | A_p | Source term (P, A, D) [28]–[30] | Mild | Basic | Intense |
-|---|---|---|---|---|---|---|
-| Joy | +0.76 | +0.48 | *joyful* (.76, .48, .35) | Serenity | Joy | Ecstasy |
-| Trust | +0.52 | +0.20 | none located | Acceptance | Trust | Admiration |
-| Fear | -0.64 | +0.60 | *fearful* (-.64, .60, -.43) | Apprehension | Fear | Terror |
-| Surprise | +0.14 | +0.67 | *surprised* (.40, .67, -.13): valence mismatch | Distraction | Surprise | Amazement |
-| Sadness | -0.63 | -0.27 | *sad* (-.63, -.27, -.33) | Pensiveness | Sadness | Grief |
-| Disgust | -0.60 | +0.35 | *disgusted* (-.60, .35, .11) | Boredom | Disgust | Loathing |
-| Anger | -0.51 | +0.59 | *angry* (-.51, .59, .25) | Annoyance | Anger | Rage |
-| Anticipation | +0.22 | +0.62 | *curious* (.22, .62, -.01) | Interest | Anticipation | Vigilance |
+| Petal        | V_p   | A_p   | Source term (P, A, D) [28]–[30]                 | Mild         | Basic        | Intense    |
+| ------------ | ----- | ----- | ------------------------------------------------ | ------------ | ------------ | ---------- |
+| Joy          | +0.76 | +0.48 | *joyful* (.76, .48, .35)                       | Serenity     | Joy          | Ecstasy    |
+| Trust        | +0.52 | +0.20 | none located                                     | Acceptance   | Trust        | Admiration |
+| Fear         | -0.64 | +0.60 | *fearful* (-.64, .60, -.43)                    | Apprehension | Fear         | Terror     |
+| Surprise     | +0.14 | +0.67 | *surprised* (.40, .67, -.13): valence mismatch | Distraction  | Surprise     | Amazement  |
+| Sadness      | -0.63 | -0.27 | *sad* (-.63, -.27, -.33)                       | Pensiveness  | Sadness      | Grief      |
+| Disgust      | -0.60 | +0.35 | *disgusted* (-.60, .35, .11)                   | Boredom      | Disgust      | Loathing   |
+| Anger        | -0.51 | +0.59 | *angry* (-.51, .59, .25)                       | Annoyance    | Anger        | Rage       |
+| Anticipation | +0.22 | +0.62 | *curious* (.22, .62, -.01)                     | Interest     | Anticipation | Vigilance  |
 
 V_p and A_p are the values used by the engine. The Dominance means for *disgusted* and *surprised* are reported in the source as not significantly different from zero.
 
@@ -399,27 +399,27 @@ As established in Section II-D, Eq. 4 is underdetermined exactly where PAD's tru
 **TABLE VIII**
 **Categorical Class → Plutchik Petal Bridge**
 
-| Class index | Class | Petal |
-|---|---|---|
-| 0 | Angry | Anger |
-| 1 | Disgust | Disgust |
-| 2 | Fear | Fear |
-| 3 | Happy | Joy |
-| 4 | Sad | Sadness |
-| 5 | Surprise | Surprise |
-| 6 | Neutral | none (no Plutchik equivalent) |
+| Class index | Class    | Petal                         |
+| ----------- | -------- | ----------------------------- |
+| 0           | Angry    | Anger                         |
+| 1           | Disgust  | Disgust                       |
+| 2           | Fear     | Fear                          |
+| 3           | Happy    | Joy                           |
+| 4           | Sad      | Sadness                       |
+| 5           | Surprise | Surprise                      |
+| 6           | Neutral  | none (no Plutchik equivalent) |
 
 The margin `δ = 0.15` can be checked against the actual degeneracies of Table VII. Computing all pairwise petal-centroid distances:
 
 **TABLE IX**
 **Petal Pairs Within the Disambiguation Margin (δ = 0.15)**
 
-| Pair | Distance | Disambiguated by class bridge? |
-|---|---|---|
-| Surprise / Anticipation | 0.094 | Partially (Surprise ↔ class 5; Anticipation has no class) |
-| Fear / Anger | 0.130 | Yes (Fear ↔ class 2, Anger ↔ class 0) |
-| (next nearest: Fear / Disgust) | 0.253 | outside margin |
-| (next nearest: Anger / Disgust) | 0.256 | outside margin |
+| Pair                            | Distance | Disambiguated by class bridge?                             |
+| ------------------------------- | -------- | ---------------------------------------------------------- |
+| Surprise / Anticipation         | 0.094    | Partially (Surprise ↔ class 5; Anticipation has no class) |
+| Fear / Anger                    | 0.130    | Yes (Fear ↔ class 2, Anger ↔ class 0)                    |
+| (next nearest: Fear / Disgust)  | 0.253    | outside margin                                             |
+| (next nearest: Anger / Disgust) | 0.256    | outside margin                                             |
 
 Only two petal pairs lie within δ = 0.15. Fear/Anger is fully handled by the categorical bridge, since both classes exist in FER-2013. Surprise/Anticipation is handled in one direction only: when the classifier predicts Surprise the tie resolves to Surprise, but no class can pull it toward Anticipation, so otherwise the assignment is geometry-only. This second near-tie is also partly an artifact of the unsourced Surprise valence: with the published *surprised* value (V = 0.40) [28], the pair would be 0.19 apart, outside the margin. The margin was therefore fit to the engine's own table rather than derived independently. A **neutral override** closes the mapping: if the categorical branch predicts Neutral and the smoothed VA magnitude `r < 0.2`, no petal is assigned (the label is simply "Neutral"), consistent with the circumplex reading of the origin as absence of strong affect [10].
 
@@ -469,17 +469,17 @@ Two synthetic traces illustrating the two characteristic regimes (all numbers co
 **TABLE X**
 **Worked Fusion Traces**
 
-| | Trace A: blend | Trace B: conflict |
-|---|---|---|
-| Softmax top-2 | Fear 0.34, Surprise 0.28 | Sad 0.42, Neutral 0.21 |
-| Eq. 7 conditions | p₁<0.5 ✓, gap 0.06<0.15 ✓ | p₁<0.5 ✓, gap 0.21>0.15 ✗ (no dyad anyway) |
-| Smoothed VA (v_t, a_t) | (−0.60, +0.55) | (+0.45, +0.10) |
-| r (Eq. 5) | 0.81 → intense | 0.46 → basic |
-| Conflict score (Eq. 3) | vs Fear centroid: 0.29 ≤ 0.5 → **reliable** | vs Sad centroid: 0.89 > 0.5 → **unreliable** |
-| Nearest petals | Fear 0.064, Anger 0.098 → tie gap 0.03 < δ → categorical bridge selects **Fear** | Trust 0.12, Joy 0.49 → no tie → **Trust** |
-| Intensity word | Terror | Trust |
-| Dyad | {Fear, Surprise} → **Awe** (primary) | suppressed (unreliable) |
-| Overlay | "Fear 34%" / "~ Terror" / "+ Awe", full color | "Sad 42%\*" / "~ Trust", box dimmed 50%, no dyad |
+|                        | Trace A: blend                                                                           | Trace B: conflict                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Softmax top-2          | Fear 0.34, Surprise 0.28                                                                 | Sad 0.42, Neutral 0.21                             |
+| Eq. 7 conditions       | p₁<0.5 ✓, gap 0.06<0.15 ✓                                                             | p₁<0.5 ✓, gap 0.21>0.15 ✗ (no dyad anyway)      |
+| Smoothed VA (v_t, a_t) | (−0.60, +0.55)                                                                          | (+0.45, +0.10)                                     |
+| r (Eq. 5)              | 0.81 → intense                                                                          | 0.46 → basic                                      |
+| Conflict score (Eq. 3) | vs Fear centroid: 0.29 ≤ 0.5 →**reliable**                                       | vs Sad centroid: 0.89 > 0.5 →**unreliable** |
+| Nearest petals         | Fear 0.064, Anger 0.098 → tie gap 0.03 < δ → categorical bridge selects**Fear** | Trust 0.12, Joy 0.49 → no tie →**Trust**   |
+| Intensity word         | Terror                                                                                   | Trust                                              |
+| Dyad                   | {Fear, Surprise} →**Awe** (primary)                                               | suppressed (unreliable)                            |
+| Overlay                | "Fear 34%" / "~ Terror" / "+ Awe", full color                                            | "Sad 42%\*" / "~ Trust", box dimmed 50%, no dyad   |
 
 Trace A is the system working as designed: a blended expression surfaces a compound emotion with intensity. Trace B is the system's most valuable failure mode: the representations disagree, and rather than committing to a wrong compound label, it flags the disagreement, suppresses dyad inference, dims the box, and shows what each branch believes.
 
@@ -522,13 +522,13 @@ The fused result drives a layered overlay per face: a bounding box colored by pe
 **TABLE XI**
 **Software Dependencies (reqs.txt)**
 
-| Package | Version | Role |
-|---|---|---|
-| tensorflow | 2.21.0 | TFLite interpreter, Keras conversion path |
-| opencv-python | 4.13.0.92 | Capture, preprocessing, overlay, display |
-| mediapipe | ≥ 0.10.14 | BlazeFace detection (Tasks API) |
-| numpy | 2.4.4 | ROI math, softmax handling, fusion |
-| h5py | 3.14.0 | HDF5/H5 weight file access |
+| Package       | Version    | Role                                      |
+| ------------- | ---------- | ----------------------------------------- |
+| tensorflow    | 2.21.0     | TFLite interpreter, Keras conversion path |
+| opencv-python | 4.13.0.92  | Capture, preprocessing, overlay, display  |
+| mediapipe     | ≥ 0.10.14 | BlazeFace detection (Tasks API)           |
+| numpy         | 2.4.4      | ROI math, softmax handling, fusion        |
+| h5py          | 3.14.0     | HDF5/H5 weight file access                |
 
 ---
 
@@ -539,30 +539,30 @@ The fused result drives a layered overlay per face: a bounding box colored by pe
 **TABLE XII**
 **Model Comparison**
 
-| Property | Categorical | Dimensional |
-|---|---|---|
-| Architecture | Mini Xception [8], [19] | MobileNetV2 + head [20] |
-| Task | 7-way classification | 2-D regression |
-| Dataset | FER-2013 [7] | AffectNet [16] |
-| Input | 64×64 × 1ch | 224×224 × 3ch |
-| Parameters | 58,423 | 3,571,778 (~61×) |
-| TFLite size | 235.6 KB | 13.8 MB (~57×) |
-| Output | Softmax over 7 | (valence, arousal) |
-| Output activation | Softmax | Linear |
+| Property          | Categorical             | Dimensional             |
+| ----------------- | ----------------------- | ----------------------- |
+| Architecture      | Mini Xception [8], [19] | MobileNetV2 + head [20] |
+| Task              | 7-way classification    | 2-D regression          |
+| Dataset           | FER-2013 [7]            | AffectNet [16]          |
+| Input             | 64×64 × 1ch           | 224×224 × 3ch         |
+| Parameters        | 58,423                  | 3,571,778 (~61×)       |
+| TFLite size       | 235.6 KB                | 13.8 MB (~57×)         |
+| Output            | Softmax over 7          | (valence, arousal)      |
+| Output activation | Softmax                 | Linear                  |
 
 The two branches are mismatched by design: the categorical model is 57–61× smaller than the dimensional one, so per-frame latency is dominated by the VA branch (Table XIII).
 
 **TABLE XIII**
 **Measured Per-Component Latency (One Face, CPU Only)**
 
-| Stage | Median (ms) | Mean (ms) | p95 (ms) |
-|---|---|---|---|
-| BlazeFace detection (720×480 frame) | 4.78 | 5.18 | 6.98 |
-| Emotion branch (preprocess + invoke) | 1.19 | 1.23 | 1.79 |
-| VA branch (preprocess + invoke) | 14.34 | 15.88 | 21.93 |
-| Both branches, sequential | 16.28 | 17.16 | 22.67 |
-| Both branches, parallel (2 threads) | 16.40 | 17.03 | 21.80 |
-| Fusion engine update | 0.04 | 0.04 | 0.07 |
+| Stage                                             | Median (ms)     | Mean (ms)       | p95 (ms)        |
+| ------------------------------------------------- | --------------- | --------------- | --------------- |
+| BlazeFace detection (720×480 frame)              | 4.78            | 5.18            | 6.98            |
+| Emotion branch (preprocess + invoke)              | 1.19            | 1.23            | 1.79            |
+| VA branch (preprocess + invoke)                   | 14.34           | 15.88           | 21.93           |
+| Both branches, sequential                         | 16.28           | 17.16           | 22.67           |
+| Both branches, parallel (2 threads)               | 16.40           | 17.03           | 21.80           |
+| Fusion engine update                              | 0.04            | 0.04            | 0.07            |
 | **Full frame (detect + branches + fusion)** | **20.51** | **21.27** | **28.78** |
 
 Measured with `eval/benchmark_latency.py`: 300 iterations after 30 warm-up iterations, on an Intel Core i5-1035G7 (4 cores, 8 threads, laptop), Windows 11, Python 3.12.10, TensorFlow 2.21.0 (XNNPACK CPU delegate), MediaPipe 1.1.0, OpenCV 5.0.0, using the repository image `carly.png` with one BlazeFace-detected face. Camera capture and overlay rendering are excluded.
@@ -574,10 +574,10 @@ Two results follow. First, the full pipeline runs at a median of 20.5 ms per fra
 **TABLE XIV**
 **Conversion Outcomes**
 
-| Model | Source artifact | Source size | TFLite size | Reduction |
-|---|---|---|---|---|
-| Emotion | `emotionModel.hdf5` (full model) | 852.4 KB | 235.6 KB | 72.4% |
-| Valence-arousal | `regressor_weights.h5` (weights only) | 14.0 MB | 13.8 MB | 3.7% |
+| Model           | Source artifact                         | Source size | TFLite size | Reduction |
+| --------------- | --------------------------------------- | ----------- | ----------- | --------- |
+| Emotion         | `emotionModel.hdf5` (full model)      | 852.4 KB    | 235.6 KB    | 72.4%     |
+| Valence-arousal | `regressor_weights.h5` (weights only) | 14.0 MB     | 13.8 MB     | 3.7%      |
 
 The emotion model's large reduction reflects HDF5's storage of architecture metadata, optimizer state, and training config, all stripped by the FlatBuffer; the VA weights file was already lean, so its reduction is marginal.
 
@@ -594,16 +594,16 @@ The shipped emotion model reaches **65.9% accuracy** on PrivateTest (95% CI [64.
 **TABLE XV**
 **Error-Detection AUROC and AURC on PrivateTest (higher AUROC = better error ranking)**
 
-| Detector | AUROC | 95% CI | AURC |
-|---|---|---|---|
-| Conflict score (shipped centroids) | 0.648 | [0.629, 0.667] | 0.259 |
+| Detector                                     | AUROC | 95% CI         | AURC  |
+| -------------------------------------------- | ----- | -------------- | ----- |
+| Conflict score (shipped centroids)           | 0.648 | [0.629, 0.667] | 0.259 |
 | Conflict score (PublicTest-fitted centroids) | 0.619 | [0.599, 0.638] | 0.282 |
-| − max softmax (MSP) | 0.782 | [0.766, 0.796] | 0.153 |
-| Entropy | 0.776 | [0.761, 0.791] | 0.156 |
-| − top-2 margin | 0.777 | [0.762, 0.793] | 0.155 |
-| Logistic (MSP + fitted CS) | 0.789 | [0.776, 0.805] | 0.155 |
-| Logistic (MSP + shipped CS) | 0.793 | — | — |
-| Oracle | 1.000 | — | 0.066 |
+| − max softmax (MSP)                         | 0.782 | [0.766, 0.796] | 0.153 |
+| Entropy                                      | 0.776 | [0.761, 0.791] | 0.156 |
+| − top-2 margin                              | 0.777 | [0.762, 0.793] | 0.155 |
+| Logistic (MSP + fitted CS)                   | 0.789 | [0.776, 0.805] | 0.155 |
+| Logistic (MSP + shipped CS)                  | 0.793 | —             | —    |
+| Oracle                                       | 1.000 | —             | 0.066 |
 
 Four findings. First, **the reliability signal is genuine but weak standalone**: the conflict score ranks errors at 0.648 AUROC, well above chance, but far below the classifier's own max-softmax confidence (0.782); the same holds for the risk-coverage area (AURC 0.259 vs. 0.153, oracle 0.066). Second, the signal is **complementary to confidence**: the conflict score correlates only weakly with MSP (Spearman ρ = −0.27) and retains AUROC 0.58–0.63 *within* every MSP stratum, including 0.63 among the most confident predictions (MSP > 0.9, error rate 7.4%, n = 1,111). Third, a two-feature logistic combination on PublicTest yields a **small but statistically reliable gain** over MSP alone: ΔAUROC = +0.011 with the shipped centroids (bootstrap CI [0.006, 0.016]) and +0.007 with fitted centroids ([0.001, 0.013]). Fourth, **as a hard gate the score is dominated by confidence**: at τ_CS = 0.5 (86% coverage) the reliable subset is 69.0% accurate vs. 46.8% for flagged images, but simply keeping the most-confident 86% of images by MSP yields 70.7%. As an overlay cue the asterisk is honest; as an abstention policy it should not replace confidence.
 
@@ -614,11 +614,11 @@ An incidental observation: the shipped hand-estimated centroids detect errors be
 **TABLE XVI**
 **Dyad Flags vs. FER+ Human Labels (Default Thresholds: 187 of 3,517 Images)**
 
-| Quantity | Dyad-fired | Not fired |
-|---|---|---|
-| Annotator split rate (runner-up class ≥ 2 of 10 votes) | 57.8% | 42.6% |
-| Model top-2 classes both receive ≥ 2 annotator votes | 8.6% | 17.0% |
-| Pair-support permutation baseline (mean / p95) | 2.9% / 4.3% | — |
+| Quantity                                                | Dyad-fired  | Not fired |
+| ------------------------------------------------------- | ----------- | --------- |
+| Annotator split rate (runner-up class ≥ 2 of 10 votes) | 57.8%       | 42.6%     |
+| Model top-2 classes both receive ≥ 2 annotator votes   | 8.6%        | 17.0%     |
+| Pair-support permutation baseline (mean / p95)          | 2.9% / 4.3% | —        |
 
 Model entropy also correlates moderately with annotator entropy over all valid images (Spearman ρ = 0.38), as does MSP with the annotators' majority share (ρ = 0.39). Where the human top-2 is well defined (second-place votes ≥ 2 and strictly above third, 94 images), the model's top-2 pair matches the annotators' in 8.5% of cases.
 
@@ -630,15 +630,15 @@ The evaluation splits the dyad hypothesis cleanly in half:
 **TABLE XVII**
 **Dyad-Threshold Ablation (Selected Rows)**
 
-| p_max | gap | Fires | Fire rate | Split fired / not | Pair support fired / perm. |
-|---|---|---|---|---|---|
-| 0.4 | 0.05 | 41 | 1.2% | 65.9% / 43.2% | 9.8% / 3.0% |
-| 0.4 | 0.25 | 105 | 3.0% | 57.1% / 43.0% | 4.8% / 2.9% |
-| 0.5 | 0.05 | 73 | 2.1% | 61.6% / 43.0% | 12.3% / 3.3% |
-| 0.5 | 0.15 (default) | 187 | 5.3% | 57.8% / 42.6% | 8.6% / 2.9% |
-| 0.5 | 0.25 | 248 | 7.1% | 58.9% / 42.2% | 8.1% / 3.0% |
-| 0.6 | 0.05 | 75 | 2.1% | 61.3% / 43.0% | 12.0% / 3.2% |
-| 0.6 | 0.25 | 310 | 8.8% | 61.6% / 41.7% | 10.6% / 3.5% |
+| p_max | gap            | Fires | Fire rate | Split fired / not | Pair support fired / perm. |
+| ----- | -------------- | ----- | --------- | ----------------- | -------------------------- |
+| 0.4   | 0.05           | 41    | 1.2%      | 65.9% / 43.2%     | 9.8% / 3.0%                |
+| 0.4   | 0.25           | 105   | 3.0%      | 57.1% / 43.0%     | 4.8% / 2.9%                |
+| 0.5   | 0.05           | 73    | 2.1%      | 61.6% / 43.0%     | 12.3% / 3.3%               |
+| 0.5   | 0.15 (default) | 187   | 5.3%      | 57.8% / 42.6%     | 8.6% / 2.9%                |
+| 0.5   | 0.25           | 248   | 7.1%      | 58.9% / 42.2%     | 8.1% / 3.0%                |
+| 0.6   | 0.05           | 75    | 2.1%      | 61.3% / 43.0%     | 12.0% / 3.2%               |
+| 0.6   | 0.25           | 310   | 8.8%      | 61.6% / 41.7%     | 10.6% / 3.5%               |
 
 No threshold setting rescues blend identification: stricter settings raise pair support (up to ~12%) only by shrinking the sample to a few dozen images. At the default thresholds the fired set is dominated by Despair (Fear+Sadness, 67) and Envy (Sadness+Anger, 66), i.e., the classifier's confusion structure around Sad, with Awe (Fear+Surprise, 24) a distant third.
 
@@ -647,14 +647,14 @@ No threshold setting rescues blend identification: stricter settings raise pair 
 **TABLE XVIII**
 **This System vs. Unmodified EmoNet-8 on FER-2013 PrivateTest**
 
-| Metric | This system | EmoNet-8 (unmodified) |
-|---|---|---|
-| Accuracy | 65.9% | 43.7% [42.2, 45.3] |
-| Macro-F1 | 0.643 | 0.373 |
-| ECE (15-bin) | 0.057 | 0.414 |
-| Best own-error AUROC | 0.782 (−MSP) | 0.645 (entropy) |
-| AUROC of this system's errors, using the other's VA | 0.535 [0.516, 0.556] | — |
-| VA Pearson r (valence / arousal) | — | 0.700 / 0.732 |
+| Metric                                              | This system          | EmoNet-8 (unmodified) |
+| --------------------------------------------------- | -------------------- | --------------------- |
+| Accuracy                                            | 65.9%                | 43.7% [42.2, 45.3]    |
+| Macro-F1                                            | 0.643                | 0.373                 |
+| ECE (15-bin)                                        | 0.057                | 0.414                 |
+| Best own-error AUROC                                | 0.782 (−MSP)        | 0.645 (entropy)       |
+| AUROC of this system's errors, using the other's VA | 0.535 [0.516, 0.556] | —                    |
+| VA Pearson r (valence / arousal)                    | —                   | 0.700 / 0.732         |
 
 EmoNet reports 75% accuracy on its AffectNet test set [34]; here it collapses to 43.7% with severe miscalibration (ECE 0.41). The comparison is deliberately out-of-domain for *both* branches (48-px grayscale upsampled to 256 px), so it is a caution about cross-domain claims rather than a head-to-head. Two usable facts survive: EmoNet's valence and arousal correlate moderately with this system's VA branch (r = 0.70 / 0.73), an independent sanity check on the regressor; and conflict scores computed with EmoNet's VA detect this system's errors at only 0.535, weaker than with its own VA, so the disagreement signal does not transfer across regressors.
 
