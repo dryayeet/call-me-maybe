@@ -66,7 +66,7 @@ emot_recog/
    - Nearest-centroid mapping to Plutchik's 8 primary petals (using Mehrabian PAD coordinates)
    - Categorical disambiguation for ambiguous VA regions (e.g., Fear vs Anger)
    - Intensity inference (mild/basic/intense) from VA magnitude
-   - Dyad detection from softmax distribution (e.g., Joy + Trust → Love)
+   - Dyad detection from softmax distribution (e.g., Fear + Surprise → Awe)
 5. Overlays: base emotion + confidence, Plutchik intensity word, dyad label, VA HUD grid
 
 ## Setup
@@ -98,6 +98,36 @@ python faceva.py
 
 All scripts support `-vw True` to save output to video. Press `Esc` to exit
 
+## Evaluation
+
+Scripts live in `eval/` and run from the repo root. Datasets, caches, the EmoNet checkout, and its environment are gitignored.
+
+**Latency benchmark** (no data needed):
+
+```bash
+python -m eval.benchmark_latency
+```
+
+Result on an Intel Core i5-1035G7 (CPU only, one face): median 20.5 ms per frame, about 49 FPS before capture and rendering. See `eval/results/latency.json`.
+
+**Fusion evaluation on FER-2013** (conflict-score AUROC, FER+ ambiguity agreement, threshold ablations):
+
+1. Download the FER-2013 challenge CSV (`fer2013.csv`) from Kaggle into `data/fer2013/`.
+2. Download the FER+ labels (`fer2013new.csv`, from the microsoft/FERPlus repo) into `data/ferplus/`.
+3. Run:
+
+```bash
+python -m eval.evaluate_fer --fer data/fer2013/fer2013.csv
+```
+
+**EmoNet baseline** (optional, unmodified, CC BY-NC-ND 4.0): clone `face-analysis/emonet` into `third_party/emonet`, create a separate PyTorch environment `emonet_env`, then run this before `evaluate_fer`:
+
+```bash
+emonet_env/Scripts/python -m eval.emonet_baseline --fer data/fer2013/fer2013.csv
+```
+
+`python -m eval.smoke_test_evaluate` checks the evaluation pipeline on synthetic data.
+
 ## Models
 
 |                        | Emotion                  | Valence-Arousal                      |
@@ -124,7 +154,7 @@ The `AffectFusionEngine` integrates three psychological frameworks:
 
 **Russell's Circumplex Model** — validates that the categorical prediction (e.g., "Happy") is consistent with the VA coordinates. A conflict score flags unreliable predictions.
 
-**Plutchik's Wheel of Emotions** — maps VA coordinates to 8 primary emotion petals using empirically validated centroids (Mehrabian PAD model). Each petal has 3 intensity levels:
+**Plutchik's Wheel of Emotions** — maps VA coordinates to 8 primary emotion petals by nearest centroid, using published PAD word ratings (Russell & Mehrabian, 1977) where a source exists. Trust is unsourced, and the Surprise valence differs from its source; see the report for provenance. Each petal has 3 intensity levels:
 
 | Petal        | Mild         | Basic        | Intense    |
 | ------------ | ------------ | ------------ | ---------- |
@@ -139,7 +169,7 @@ The `AffectFusionEngine` integrates three psychological frameworks:
 
 **Mehrabian's PAD model (1974/1995)** — supplies the empirically measured Pleasure-Arousal-Dominance word coordinates that bridge continuous VA geometry onto discrete Plutchik petals (P ≈ valence, A ≈ arousal). The Dominance axis, the true fear/anger discriminator, is truncated in this 2-D pipeline; the engine compensates with categorical disambiguation when the two nearest petal centroids tie.
 
-**Dyads** (compound emotions) are inferred when the classifier's top two predictions are close in confidence:
+**Dyads** (compound emotions) are inferred when the classifier's top two predictions are close in confidence. The engine implements all 8 primary and 8 secondary dyads, but only the 9 that avoid Trust and Anticipation can fire, since FER-2013 has no class for either:
 
 | Primary Dyad | Components         |
 | ------------ | ------------------ |
