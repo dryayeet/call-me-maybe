@@ -1,23 +1,39 @@
 # Real-Time Facial Affect Analysis
 
 Detects human faces in a live webcam feed and performs two types of affect analysis in parallel:
+
 - **Categorical:** Classifies expressions into 7 discrete emotions
 - **Dimensional:** Predicts continuous Valence (positive/negative) and Arousal (calm/excited) values
 - **Fusion:** Cross-validates both outputs using Russell's Circumplex and Plutchik's Wheel of Emotions to infer intensity levels, compound emotions (dyads), and reliability.
 
 ![Carly](carly.png)
 
+## Why This Exists
+
+The human face is a remarkably dense signal: a single expression can carry dozens of co-occurring micro-expressions, our expressive repertoire has expanded dramatically over evolutionary time, and yet individuals and cultures still differ widely in how they portray the same underlying states. Standard categorical recognition, seven labels and an argmax, captures almost none of that structure.
+
+This project instead grounds its analysis in a small stack of classic affect frameworks:
+
+- **Russell's Circumplex Model (1980)**: affect represented as geometry in the valence-arousal plane rather than as a list of categories. This forms the basis of the dimensional analysis.
+- **Ekman's six basic emotions**: the classic categorical vocabulary, which turns out to be too coarse for this project's goals, motivating a richer model.
+- **Plutchik's Wheel of Emotions (1980)**: eight basic emotions arranged as petals on an intensity scale, combined through dyads into sixteen distinct emotion labels.
+- **Mehrabian's PAD model (1974/1995)**: empirically measured Pleasure-Arousal-Dominance word coordinates, the key piece that provides a numeric bridge from continuous geometry back onto discrete Plutchik labels. Implemented here as the `AffectFusionEngine`.
+
+The remaining components are standard computer vision: MediaPipe BlazeFace, Mini Xception, MobileNetV2 (regression). Together they yield a psychologically grounded, current analysis of the emotions displayed by the human face.
+
+Full academic write-up (IEEE format, theory lineage, and equations): [iee_project_report.md](iee_project_report.md)
+
 ## Tech Stack
 
-| Component | Tool |
-|---|---|
-| Face Detection | MediaPipe BlazeFace (short-range) |
-| Emotion Classification | Mini Xception (trained on FER-2013) |
-| Valence-Arousal Regression | MobileNetV2 (trained on AffectNet) |
-| Affect Fusion | AffectFusionEngine (Russell + Plutchik) |
-| Inference Runtime | TensorFlow Lite |
-| Parallel Execution | Python `concurrent.futures.ThreadPoolExecutor` |
-| Image Processing | OpenCV |
+| Component                  | Tool                                            |
+| -------------------------- | ----------------------------------------------- |
+| Face Detection             | MediaPipe BlazeFace (short-range)               |
+| Emotion Classification     | Mini Xception (trained on FER-2013)             |
+| Valence-Arousal Regression | MobileNetV2 (trained on AffectNet)              |
+| Affect Fusion              | AffectFusionEngine (Russell + Plutchik)         |
+| Inference Runtime          | TensorFlow Lite                                 |
+| Parallel Execution         | Python`concurrent.futures.ThreadPoolExecutor` |
+| Image Processing           | OpenCV                                          |
 
 ## Project Structure
 
@@ -56,23 +72,26 @@ emot_recog/
 ## Setup
 
 ```bash
-pip install tensorflow opencv-python mediapipe numpy
+python -m pip install -r reqs.txt
 ```
 
 ## Usage
 
 **Combined with fusion (recommended):**
+
 ```bash
 cd emot_recog
 python facecombined.py
 ```
 
 **Emotion only:**
+
 ```bash
 python facemot.py
 ```
 
 **Valence-Arousal only:**
+
 ```bash
 python faceva.py
 ```
@@ -81,14 +100,14 @@ All scripts support `-vw True` to save output to video. Press `Esc` to exit
 
 ## Models
 
-| | Emotion | Valence-Arousal |
-|---|---|---|
-| **Architecture** | Mini Xception | MobileNetV2 + Dense(1024) + Dense(2) |
-| **Dataset** | FER-2013 (35,887 images) | AffectNet (400K+ images) |
-| **Input** | 64x64 grayscale | 224x224 RGB |
-| **Output** | 7-class softmax | 2 floats: valence, arousal |
-| **Params** | 58K | 3.6M |
-| **TFLite size** | 236 KB | 13.8 MB |
+|                        | Emotion                  | Valence-Arousal                      |
+| ---------------------- | ------------------------ | ------------------------------------ |
+| **Architecture** | Mini Xception            | MobileNetV2 + Dense(1024) + Dense(2) |
+| **Dataset**      | FER-2013 (35,887 images) | AffectNet (400K+ images)             |
+| **Input**        | 64x64 grayscale          | 224x224 RGB                          |
+| **Output**       | 7-class softmax          | 2 floats: valence, arousal           |
+| **Params**       | 58K                      | 3.6M                                 |
+| **TFLite size**  | 236 KB                   | 13.8 MB                              |
 
 ### Emotion Classes
 
@@ -101,33 +120,31 @@ All scripts support `-vw True` to save output to video. Press `Esc` to exit
 
 ## Affect Fusion
 
-The `AffectFusionEngine` integrates two psychological frameworks:
+The `AffectFusionEngine` integrates three psychological frameworks:
 
 **Russell's Circumplex Model** — validates that the categorical prediction (e.g., "Happy") is consistent with the VA coordinates. A conflict score flags unreliable predictions.
 
 **Plutchik's Wheel of Emotions** — maps VA coordinates to 8 primary emotion petals using empirically validated centroids (Mehrabian PAD model). Each petal has 3 intensity levels:
 
-| Petal | Mild | Basic | Intense |
-|---|---|---|---|
-| Joy | Serenity | Joy | Ecstasy |
-| Trust | Acceptance | Trust | Admiration |
-| Fear | Apprehension | Fear | Terror |
-| Surprise | Distraction | Surprise | Amazement |
-| Sadness | Pensiveness | Sadness | Grief |
-| Disgust | Boredom | Disgust | Loathing |
-| Anger | Annoyance | Anger | Rage |
+| Petal        | Mild         | Basic        | Intense    |
+| ------------ | ------------ | ------------ | ---------- |
+| Joy          | Serenity     | Joy          | Ecstasy    |
+| Trust        | Acceptance   | Trust        | Admiration |
+| Fear         | Apprehension | Fear         | Terror     |
+| Surprise     | Distraction  | Surprise     | Amazement  |
+| Sadness      | Pensiveness  | Sadness      | Grief      |
+| Disgust      | Boredom      | Disgust      | Loathing   |
+| Anger        | Annoyance    | Anger        | Rage       |
 | Anticipation | Interest | Anticipation | Vigilance |
+
+**Mehrabian's PAD model (1974/1995)** — supplies the empirically measured Pleasure-Arousal-Dominance word coordinates that bridge continuous VA geometry onto discrete Plutchik petals (P ≈ valence, A ≈ arousal). The Dominance axis, the true fear/anger discriminator, is truncated in this 2-D pipeline; the engine compensates with categorical disambiguation when the two nearest petal centroids tie.
 
 **Dyads** (compound emotions) are inferred when the classifier's top two predictions are close in confidence:
 
-| Primary Dyad | Components |
-|---|---|
-| Love | Joy + Trust |
-| Awe | Fear + Surprise |
-| Contempt | Disgust + Anger |
-| Optimism | Anticipation + Joy |
-| Remorse | Sadness + Disgust |
-
-## License
-
-See [LICENSE](face-classification/LICENSE).
+| Primary Dyad | Components         |
+| ------------ | ------------------ |
+| Love         | Joy + Trust        |
+| Awe          | Fear + Surprise    |
+| Contempt     | Disgust + Anger    |
+| Optimism     | Anticipation + Joy |
+| Remorse      | Sadness + Disgust  |
