@@ -128,6 +128,16 @@ emonet_env/Scripts/python -m eval.emonet_baseline --fer data/fer2013/fer2013.csv
 
 `python -m eval.smoke_test_evaluate` checks the evaluation pipeline on synthetic data.
 
+### Results (i5-1035G7, CPU, FER-2013 PrivateTest)
+
+- **Classifier:** 65.9% accuracy (matches the ~66% reported by the architecture's source), macro-F1 0.643, ECE 0.057.
+- **Conflict score as an error detector:** AUROC 0.648, better than chance but well below max-softmax confidence (0.782). Combined with MSP in a small logistic model: 0.789 to 0.793, a reliable but modest gain (ΔAUROC +0.011, CI [0.006, 0.016]). The signal is complementary: it stays informative (AUROC ≈ 0.63) even among the most confident predictions.
+- **Reliability gate at τ = 0.5:** reliable images 69.0% accurate vs. 46.8% for flagged ones, but keeping the most-confident 86% by MSP does better (70.7%), so as an abstention policy it loses to plain confidence.
+- **Dyads vs. human labels (FER+):** dyad-fired images genuinely are more ambiguous to humans (58% vs. 43% annotator splits), but the specific blend matches the humans' second choice in only ~9% of clear cases (permutation baseline ~3%). Softmax near-ties mostly reflect model confusion, not perceivable blends. No threshold setting fixes this.
+- **EmoNet-8 baseline (out-of-domain):** 43.7% accuracy; its VA nonetheless correlates with ours (r = 0.70 / 0.73), a useful sanity check on the regressor.
+
+Full numbers: `eval/results/fer2013_eval.json` and the report's Section V-C.
+
 ## Models
 
 |                        | Emotion                  | Valence-Arousal                      |
