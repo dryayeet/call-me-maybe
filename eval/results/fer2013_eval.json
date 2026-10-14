@@ -1,0 +1,769 @@
+{
+  "n_publictest": 3589,
+  "n_privatetest": 3589,
+  "E1_classifier": {
+    "accuracy": 0.6592365561437726,
+    "accuracy_ci95": [
+      0.6439119531903037,
+      0.6754040122596824
+    ],
+    "macro_f1": 0.6431543220182467,
+    "ece_15bin": 0.0573623582708301,
+    "publictest_accuracy": 0.6450264697687378,
+    "per_class_recall": {
+      "Angry": 0.5865580448065173,
+      "Disgust": 0.6,
+      "Fear": 0.42045454545454547,
+      "Happy": 0.8771331058020477,
+      "Sad": 0.5353535353535354,
+      "Surprise": 0.7451923076923077,
+      "Neutral": 0.6773162939297125
+    }
+  },
+  "fitted_centroids_publictest": {
+    "Angry": [
+      -0.243,
+      0.434
+    ],
+    "Disgust": [
+      -0.334,
+      0.42
+    ],
+    "Fear": [
+      -0.137,
+      0.262
+    ],
+    "Happy": [
+      0.51,
+      0.158
+    ],
+    "Sad": [
+      -0.218,
+      0.056
+    ],
+    "Surprise": [
+      0.102,
+      0.584
+    ],
+    "Neutral": [
+      -0.054,
+      0.071
+    ]
+  },
+  "va_output_stats_privatetest": {
+    "valence_mean": 0.03136049956083298,
+    "valence_std": 0.3686899244785309,
+    "arousal_mean": 0.2354246824979782,
+    "arousal_std": 0.2803933024406433,
+    "per_true_class_mean": {
+      "Angry": [
+        -0.248,
+        0.428
+      ],
+      "Disgust": [
+        -0.349,
+        0.419
+      ],
+      "Fear": [
+        -0.138,
+        0.3
+      ],
+      "Happy": [
+        0.519,
+        0.169
+      ],
+      "Sad": [
+        -0.215,
+        0.039
+      ],
+      "Surprise": [
+        0.103,
+        0.567
+      ],
+      "Neutral": [
+        -0.072,
+        0.074
+      ]
+    }
+  },
+  "E2_error_detection_auroc": {
+    "conflict_score_hand": {
+      "auroc": 0.6483751483436998,
+      "ci95": [
+        0.6290331562649014,
+        0.6668649411020869
+      ]
+    },
+    "conflict_score_fitted": {
+      "auroc": 0.6194162463739167,
+      "ci95": [
+        0.5986371941038642,
+        0.6377075005672175
+      ]
+    },
+    "neg_max_softmax": {
+      "auroc": 0.7820291068136844,
+      "ci95": [
+        0.7661256079659038,
+        0.7960145005321695
+      ]
+    },
+    "entropy": {
+      "auroc": 0.7758930169773619,
+      "ci95": [
+        0.761071718865577,
+        0.791048669102162
+      ]
+    },
+    "neg_top2_margin": {
+      "auroc": 0.7770286195344375,
+      "ci95": [
+        0.7617826604812739,
+        0.7925211953840253
+      ]
+    },
+    "logistic_msp_plus_cs_fitted": {
+      "auroc": 0.78932084331795,
+      "ci95": [
+        0.7761496765277742,
+        0.8048525151645884
+      ]
+    }
+  },
+  "E2_logistic_weights_standardized": {
+    "msp": -1.1115231912189978,
+    "cs_fitted": 0.40113409862739496,
+    "bias": -0.7835880561914353
+  },
+  "E2_added_value": {
+    "logistic_msp_plus_cs_hand_auroc": 0.793145121436209,
+    "delta_combo_fitted_minus_msp": {
+      "delta_auroc": 0.007291736504265622,
+      "ci95": [
+        0.0013666728733177065,
+        0.013323042889704201
+      ]
+    },
+    "delta_combo_hand_minus_msp": {
+      "delta_auroc": 0.01111601462252454,
+      "ci95": [
+        0.005875674602480558,
+        0.01607469414711366
+      ]
+    },
+    "spearman_cs_hand_vs_msp": -0.2676107712953676,
+    "cs_hand_auroc_within_msp_strata": {
+      "msp_0.0-0.5": {
+        "n": 806,
+        "error_rate": 0.6203473945409429,
+        "auroc_cs_hand": 0.6069411764705882
+      },
+      "msp_0.5-0.7": {
+        "n": 872,
+        "error_rate": 0.4805045871559633,
+        "auroc_cs_hand": 0.5805054608101914
+      },
+      "msp_0.7-0.9": {
+        "n": 800,
+        "error_rate": 0.2775,
+        "auroc_cs_hand": 0.599827768945416
+      },
+      "msp_0.9-1.0": {
+        "n": 1111,
+        "error_rate": 0.0738073807380738,
+        "auroc_cs_hand": 0.6286176491502524
+      }
+    }
+  },
+  "E3_gate_tau_0.5": {
+    "hand": {
+      "tau": 0.5,
+      "coverage": 0.8623572025633881,
+      "acc_reliable": 0.6898222940226171,
+      "acc_unreliable": 0.4676113360323887,
+      "msp_acc_at_same_coverage": 0.7069466882067852
+    },
+    "fitted": {
+      "tau": 0.5,
+      "coverage": 0.9008080245193647,
+      "acc_reliable": 0.6835756263532323,
+      "acc_unreliable": 0.43820224719101125,
+      "msp_acc_at_same_coverage": 0.6934735539746366
+    }
+  },
+  "E3_tau_sweep_hand": [
+    {
+      "tau": 0.1,
+      "coverage": 0.06547784898300363,
+      "acc_reliable": 0.7489361702127659,
+      "acc_unreliable": 0.6529516994633273
+    },
+    {
+      "tau": 0.2,
+      "coverage": 0.31290052939537477,
+      "acc_reliable": 0.7747105966162066,
+      "acc_unreliable": 0.6066504460665044
+    },
+    {
+      "tau": 0.3,
+      "coverage": 0.5700752298690444,
+      "acc_reliable": 0.7487781036168133,
+      "acc_unreliable": 0.5405055087491899
+    },
+    {
+      "tau": 0.4,
+      "coverage": 0.7392031206464196,
+      "acc_reliable": 0.7184319638145495,
+      "acc_unreliable": 0.49145299145299143
+    },
+    {
+      "tau": 0.5,
+      "coverage": 0.8623572025633881,
+      "acc_reliable": 0.6898222940226171,
+      "acc_unreliable": 0.4676113360323887
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.9267205349679577,
+      "acc_reliable": 0.6791942273000602,
+      "acc_unreliable": 0.4068441064638783
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.9637782112008916,
+      "acc_reliable": 0.6718704827984967,
+      "acc_unreliable": 0.3230769230769231
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.9813318473112288,
+      "acc_reliable": 0.6678023850085179,
+      "acc_unreliable": 0.208955223880597
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.9916411256617442,
+      "acc_reliable": 0.6628266366957011,
+      "acc_unreliable": 0.23333333333333334
+    },
+    {
+      "tau": 1.0,
+      "coverage": 0.9966564502646977,
+      "acc_reliable": 0.6603298853788091,
+      "acc_unreliable": 0.3333333333333333
+    },
+    {
+      "tau": 1.1,
+      "coverage": 0.9986068542769574,
+      "acc_reliable": 0.6598772321428571,
+      "acc_unreliable": 0.2
+    },
+    {
+      "tau": 1.2,
+      "coverage": 0.9991641125661744,
+      "acc_reliable": 0.6595092024539877,
+      "acc_unreliable": 0.3333333333333333
+    },
+    {
+      "tau": 1.3,
+      "coverage": 0.9997213708553915,
+      "acc_reliable": 0.6594202898550725,
+      "acc_unreliable": 0.0
+    },
+    {
+      "tau": 1.4,
+      "coverage": 0.9997213708553915,
+      "acc_reliable": 0.6594202898550725,
+      "acc_unreliable": 0.0
+    },
+    {
+      "tau": 1.5,
+      "coverage": 1.0,
+      "acc_reliable": 0.6592365561437726,
+      "acc_unreliable": null
+    }
+  ],
+  "E3_tau_sweep_fitted": [
+    {
+      "tau": 0.1,
+      "coverage": 0.1423794928949568,
+      "acc_reliable": 0.7103718199608611,
+      "acc_unreliable": 0.6507472384665367
+    },
+    {
+      "tau": 0.2,
+      "coverage": 0.48676511563109504,
+      "acc_reliable": 0.7584430452203778,
+      "acc_unreliable": 0.5651465798045603
+    },
+    {
+      "tau": 0.3,
+      "coverage": 0.6887712454722764,
+      "acc_reliable": 0.7164239482200647,
+      "acc_unreliable": 0.5326768128916741
+    },
+    {
+      "tau": 0.4,
+      "coverage": 0.8147116188353302,
+      "acc_reliable": 0.6993844049247606,
+      "acc_unreliable": 0.48270676691729325
+    },
+    {
+      "tau": 0.5,
+      "coverage": 0.9008080245193647,
+      "acc_reliable": 0.6835756263532323,
+      "acc_unreliable": 0.43820224719101125
+    },
+    {
+      "tau": 0.6,
+      "coverage": 0.9526330454165506,
+      "acc_reliable": 0.6730038022813688,
+      "acc_unreliable": 0.38235294117647056
+    },
+    {
+      "tau": 0.7,
+      "coverage": 0.9827249930342714,
+      "acc_reliable": 0.6660051034873831,
+      "acc_unreliable": 0.27419354838709675
+    },
+    {
+      "tau": 0.8,
+      "coverage": 0.9927556422401783,
+      "acc_reliable": 0.6620825147347741,
+      "acc_unreliable": 0.2692307692307692
+    },
+    {
+      "tau": 0.9,
+      "coverage": 0.9958205628308721,
+      "acc_reliable": 0.6608841634023503,
+      "acc_unreliable": 0.26666666666666666
+    },
+    {
+      "tau": 1.0,
+      "coverage": 0.9986068542769574,
+      "acc_reliable": 0.6598772321428571,
+      "acc_unreliable": 0.2
+    },
+    {
+      "tau": 1.1,
+      "coverage": 0.9991641125661744,
+      "acc_reliable": 0.6597880646960401,
+      "acc_unreliable": 0.0
+    },
+    {
+      "tau": 1.2,
+      "coverage": 0.9997213708553915,
+      "acc_reliable": 0.6594202898550725,
+      "acc_unreliable": 0.0
+    },
+    {
+      "tau": 1.3,
+      "coverage": 0.9997213708553915,
+      "acc_reliable": 0.6594202898550725,
+      "acc_unreliable": 0.0
+    },
+    {
+      "tau": 1.4,
+      "coverage": 1.0,
+      "acc_reliable": 0.6592365561437726,
+      "acc_unreliable": null
+    },
+    {
+      "tau": 1.5,
+      "coverage": 1.0,
+      "acc_reliable": 0.6592365561437726,
+      "acc_unreliable": null
+    }
+  ],
+  "E3_aurc": {
+    "conflict_score_hand": 0.25882606935119357,
+    "conflict_score_fitted": 0.2819608570582362,
+    "neg_max_softmax": 0.15336937731491634,
+    "entropy": 0.1556948394360909,
+    "neg_top2_margin": 0.15482347415579928,
+    "logistic_msp_plus_cs_fitted": 0.1553555924223765
+  },
+  "E3_aurc_oracle": 0.06612493918363638,
+  "E6_emonet": {
+    "accuracy": 0.4374477570353859,
+    "accuracy_ci95": [
+      0.4218236277514628,
+      0.4533365840066871
+    ],
+    "macro_f1": 0.37278801511587834,
+    "ece_15bin": 0.41431504800350816,
+    "contempt_argmax_rate": 0.006687099470604625,
+    "auroc_own_errors": {
+      "conflict_score_fitted": 0.4924667884397586,
+      "neg_max_softmax": 0.6389090266670452,
+      "entropy": 0.6449642409845323
+    },
+    "auroc_ours_errors_cs_with_emonet_va": {
+      "auroc": 0.5349040543706874,
+      "ci95": [
+        0.5159763098672137,
+        0.5557539448300515
+      ]
+    },
+    "va_pearson_ours_vs_emonet": {
+      "valence": 0.6999685086277014,
+      "arousal": 0.7320669760264583
+    },
+    "fitted_centroids_publictest": {
+      "Angry": [
+        -0.244,
+        0.458
+      ],
+      "Disgust": [
+        -0.339,
+        0.378
+      ],
+      "Fear": [
+        -0.19,
+        0.402
+      ],
+      "Happy": [
+        0.183,
+        0.24
+      ],
+      "Sad": [
+        -0.241,
+        0.233
+      ],
+      "Surprise": [
+        0.018,
+        0.685
+      ],
+      "Neutral": [
+        -0.121,
+        0.217
+      ]
+    }
+  },
+  "E4_ferplus": {
+    "n_valid": 3517,
+    "spearman_model_entropy_vs_annotator_entropy": 0.3813443467197667,
+    "spearman_model_msp_vs_annotator_majority_share": 0.39349544272689857
+  },
+  "E4_default_thresholds": {
+    "p_max": 0.5,
+    "gap": 0.15,
+    "n_fired": 187,
+    "fire_rate": 0.0531703156098948,
+    "pair_support_ge2_fired": 0.0855614973262032,
+    "pair_support_ge2_not_fired": 0.16966966966966968,
+    "pair_support_permutation_mean": 0.028652406417112298,
+    "pair_support_permutation_p95": 0.0427807486631016,
+    "exact_top2_agreement_clear_annotator_top2": 0.0851063829787234,
+    "n_clear_annotator_top2": 94,
+    "annotator_split_rate_fired": 0.5775401069518716,
+    "annotator_split_rate_not_fired": 0.4261261261261261,
+    "dyad_counts": {
+      "Awe": 24,
+      "Contempt": 6,
+      "Despair": 67,
+      "Disapproval": 4,
+      "Envy": 66,
+      "Guilt": 11,
+      "Pride": 6,
+      "Remorse": 2,
+      "Unbelief": 1
+    }
+  },
+  "E5_dyad_threshold_ablation": [
+    {
+      "p_max": 0.4,
+      "gap": 0.05,
+      "n_fired": 41,
+      "fire_rate": 0.011657662780779073,
+      "pair_support_ge2_fired": 0.0975609756097561,
+      "pair_support_ge2_not_fired": 0.16599539700805524,
+      "pair_support_permutation_mean": 0.03009756097560976,
+      "pair_support_permutation_p95": 0.07317073170731707,
+      "exact_top2_agreement_clear_annotator_top2": 0.08695652173913043,
+      "n_clear_annotator_top2": 23,
+      "annotator_split_rate_fired": 0.6585365853658537,
+      "annotator_split_rate_not_fired": 0.4315304948216341,
+      "dyad_counts": {
+        "Awe": 6,
+        "Contempt": 1,
+        "Despair": 11,
+        "Disapproval": 2,
+        "Envy": 13,
+        "Guilt": 5,
+        "Pride": 1,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.4,
+      "gap": 0.1,
+      "n_fired": 81,
+      "fire_rate": 0.02303099232300256,
+      "pair_support_ge2_fired": 0.06172839506172839,
+      "pair_support_ge2_not_fired": 0.16763678696158324,
+      "pair_support_permutation_mean": 0.027876543209876543,
+      "pair_support_permutation_p95": 0.04938271604938271,
+      "exact_top2_agreement_clear_annotator_top2": 0.07317073170731707,
+      "n_clear_annotator_top2": 41,
+      "annotator_split_rate_fired": 0.5802469135802469,
+      "annotator_split_rate_not_fired": 0.4307334109429569,
+      "dyad_counts": {
+        "Awe": 8,
+        "Contempt": 2,
+        "Despair": 29,
+        "Disapproval": 4,
+        "Envy": 29,
+        "Guilt": 6,
+        "Pride": 1,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.4,
+      "gap": 0.15,
+      "n_fired": 99,
+      "fire_rate": 0.028148990617003128,
+      "pair_support_ge2_fired": 0.050505050505050504,
+      "pair_support_ge2_not_fired": 0.16851960210649503,
+      "pair_support_permutation_mean": 0.025131313131313136,
+      "pair_support_permutation_p95": 0.050505050505050504,
+      "exact_top2_agreement_clear_annotator_top2": 0.0625,
+      "n_clear_annotator_top2": 48,
+      "annotator_split_rate_fired": 0.5656565656565656,
+      "annotator_split_rate_not_fired": 0.43036863662960795,
+      "dyad_counts": {
+        "Awe": 10,
+        "Contempt": 4,
+        "Despair": 37,
+        "Disapproval": 4,
+        "Envy": 32,
+        "Guilt": 8,
+        "Pride": 2,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.4,
+      "gap": 0.25,
+      "n_fired": 105,
+      "fire_rate": 0.029854990048336652,
+      "pair_support_ge2_fired": 0.047619047619047616,
+      "pair_support_ge2_not_fired": 0.16881594372801875,
+      "pair_support_permutation_mean": 0.02906666666666667,
+      "pair_support_permutation_p95": 0.05714285714285714,
+      "exact_top2_agreement_clear_annotator_top2": 0.058823529411764705,
+      "n_clear_annotator_top2": 51,
+      "annotator_split_rate_fired": 0.5714285714285714,
+      "annotator_split_rate_not_fired": 0.42995310668229775,
+      "dyad_counts": {
+        "Awe": 11,
+        "Contempt": 4,
+        "Despair": 38,
+        "Disapproval": 4,
+        "Envy": 35,
+        "Guilt": 9,
+        "Pride": 2,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.5,
+      "gap": 0.05,
+      "n_fired": 73,
+      "fire_rate": 0.020756326414557862,
+      "pair_support_ge2_fired": 0.1232876712328767,
+      "pair_support_ge2_not_fired": 0.16608594657375145,
+      "pair_support_permutation_mean": 0.03326027397260274,
+      "pair_support_permutation_p95": 0.0684931506849315,
+      "exact_top2_agreement_clear_annotator_top2": 0.15,
+      "n_clear_annotator_top2": 40,
+      "annotator_split_rate_fired": 0.6164383561643836,
+      "annotator_split_rate_not_fired": 0.43031358885017423,
+      "dyad_counts": {
+        "Awe": 13,
+        "Contempt": 2,
+        "Despair": 22,
+        "Disapproval": 2,
+        "Envy": 24,
+        "Guilt": 5,
+        "Pride": 3,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.5,
+      "gap": 0.1,
+      "n_fired": 148,
+      "fire_rate": 0.0420813193062269,
+      "pair_support_ge2_fired": 0.08783783783783784,
+      "pair_support_ge2_not_fired": 0.16859602255862274,
+      "pair_support_permutation_mean": 0.02931081081081081,
+      "pair_support_permutation_p95": 0.0472972972972973,
+      "exact_top2_agreement_clear_annotator_top2": 0.10126582278481013,
+      "n_clear_annotator_top2": 79,
+      "annotator_split_rate_fired": 0.5945945945945946,
+      "annotator_split_rate_not_fired": 0.42712971208073613,
+      "dyad_counts": {
+        "Awe": 19,
+        "Contempt": 4,
+        "Despair": 52,
+        "Disapproval": 4,
+        "Envy": 55,
+        "Guilt": 7,
+        "Pride": 4,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    },
+    {
+      "p_max": 0.5,
+      "gap": 0.15,
+      "n_fired": 187,
+      "fire_rate": 0.0531703156098948,
+      "pair_support_ge2_fired": 0.0855614973262032,
+      "pair_support_ge2_not_fired": 0.16966966966966968,
+      "pair_support_permutation_mean": 0.028320855614973262,
+      "pair_support_permutation_p95": 0.0427807486631016,
+      "exact_top2_agreement_clear_annotator_top2": 0.0851063829787234,
+      "n_clear_annotator_top2": 94,
+      "annotator_split_rate_fired": 0.5775401069518716,
+      "annotator_split_rate_not_fired": 0.4261261261261261,
+      "dyad_counts": {
+        "Awe": 24,
+        "Contempt": 6,
+        "Despair": 67,
+        "Disapproval": 4,
+        "Envy": 66,
+        "Guilt": 11,
+        "Pride": 6,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    },
+    {
+      "p_max": 0.5,
+      "gap": 0.25,
+      "n_fired": 248,
+      "fire_rate": 0.07051464316178561,
+      "pair_support_ge2_fired": 0.08064516129032258,
+      "pair_support_ge2_not_fired": 0.17161211379626798,
+      "pair_support_permutation_mean": 0.03033064516129032,
+      "pair_support_permutation_p95": 0.04435483870967742,
+      "exact_top2_agreement_clear_annotator_top2": 0.07751937984496124,
+      "n_clear_annotator_top2": 129,
+      "annotator_split_rate_fired": 0.5887096774193549,
+      "annotator_split_rate_not_fired": 0.42245334964821046,
+      "dyad_counts": {
+        "Awe": 35,
+        "Contempt": 8,
+        "Despair": 89,
+        "Disapproval": 4,
+        "Envy": 90,
+        "Guilt": 12,
+        "Pride": 7,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    },
+    {
+      "p_max": 0.6,
+      "gap": 0.05,
+      "n_fired": 75,
+      "fire_rate": 0.021324992891669035,
+      "pair_support_ge2_fired": 0.12,
+      "pair_support_ge2_not_fired": 0.1661824520627542,
+      "pair_support_permutation_mean": 0.031599999999999996,
+      "pair_support_permutation_p95": 0.06666666666666667,
+      "exact_top2_agreement_clear_annotator_top2": 0.14634146341463414,
+      "n_clear_annotator_top2": 41,
+      "annotator_split_rate_fired": 0.6133333333333333,
+      "annotator_split_rate_not_fired": 0.4302730970366066,
+      "dyad_counts": {
+        "Awe": 14,
+        "Contempt": 2,
+        "Despair": 23,
+        "Disapproval": 2,
+        "Envy": 24,
+        "Guilt": 5,
+        "Pride": 3,
+        "Remorse": 2
+      }
+    },
+    {
+      "p_max": 0.6,
+      "gap": 0.1,
+      "n_fired": 157,
+      "fire_rate": 0.04464031845322718,
+      "pair_support_ge2_fired": 0.09554140127388536,
+      "pair_support_ge2_not_fired": 0.16845238095238096,
+      "pair_support_permutation_mean": 0.03201273885350318,
+      "pair_support_permutation_p95": 0.050955414012738856,
+      "exact_top2_agreement_clear_annotator_top2": 0.10588235294117647,
+      "n_clear_annotator_top2": 85,
+      "annotator_split_rate_fired": 0.5987261146496815,
+      "annotator_split_rate_not_fired": 0.4264880952380952,
+      "dyad_counts": {
+        "Awe": 21,
+        "Contempt": 4,
+        "Despair": 58,
+        "Disapproval": 4,
+        "Envy": 56,
+        "Guilt": 7,
+        "Pride": 4,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    },
+    {
+      "p_max": 0.6,
+      "gap": 0.15,
+      "n_fired": 207,
+      "fire_rate": 0.05885698038100654,
+      "pair_support_ge2_fired": 0.10628019323671498,
+      "pair_support_ge2_not_fired": 0.1688821752265861,
+      "pair_support_permutation_mean": 0.033816425120772944,
+      "pair_support_permutation_p95": 0.05314009661835749,
+      "exact_top2_agreement_clear_annotator_top2": 0.12149532710280374,
+      "n_clear_annotator_top2": 107,
+      "annotator_split_rate_fired": 0.5893719806763285,
+      "annotator_split_rate_not_fired": 0.4244712990936556,
+      "dyad_counts": {
+        "Awe": 30,
+        "Contempt": 6,
+        "Despair": 78,
+        "Disapproval": 4,
+        "Envy": 68,
+        "Guilt": 11,
+        "Pride": 7,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    },
+    {
+      "p_max": 0.6,
+      "gap": 0.25,
+      "n_fired": 310,
+      "fire_rate": 0.08814330395223202,
+      "pair_support_ge2_fired": 0.1064516129032258,
+      "pair_support_ge2_not_fired": 0.1708762082943561,
+      "pair_support_permutation_mean": 0.03463225806451613,
+      "pair_support_permutation_p95": 0.05161290322580645,
+      "exact_top2_agreement_clear_annotator_top2": 0.12209302325581395,
+      "n_clear_annotator_top2": 172,
+      "annotator_split_rate_fired": 0.6161290322580645,
+      "annotator_split_rate_not_fired": 0.4165887121920798,
+      "dyad_counts": {
+        "Awe": 50,
+        "Contempt": 9,
+        "Despair": 120,
+        "Disapproval": 4,
+        "Envy": 103,
+        "Guilt": 12,
+        "Pride": 9,
+        "Remorse": 2,
+        "Unbelief": 1
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ October 14, 2026
 
 ## Abstract
 
-*Automatic facial expression analysis systems typically commit to a single representation of affect: either discrete emotion categories (e.g., happy, sad, angry) or continuous dimensional scores (valence and arousal). Categorical models offer interpretability but discard intensity and blend information; dimensional models capture graded affect but produce coordinates that are difficult to communicate to end users. This project presents a real-time webcam-based affect analysis system that runs both representations concurrently and fuses them under classical psychological structure. A Mini Xception convolutional network trained on FER-2013 performs 7-class expression classification, while a MobileNetV2 regressor trained on AffectNet predicts continuous valence and arousal. Both models execute in parallel per detected face as TensorFlow Lite interpreters, and MediaPipe BlazeFace supplies face detection. An Affect Fusion Engine cross-validates the two model outputs using Russell's Circumplex Model of Affect, maps fused coordinates onto the eight petals of Plutchik's Wheel of Emotions using Mehrabian's empirically measured Pleasure-Arousal-Dominance (PAD) word coordinates as the numeric bridge, and in doing so expands the petal vocabulary into sixteen compound-emotion labels (dyads) and three intensity tiers per petal. The engine additionally emits a per-frame reliability signal derived from cross-representation agreement. The complete pipeline, including a 58K-parameter emotion classifier and a 3.6M-parameter valence-arousal regressor, runs entirely on CPU at a measured median of 20.5 ms per frame for one face (about 49 FPS before capture and rendering) on a 4-core laptop processor, with total model footprint under 14.2 MB.*
+*Automatic facial expression analysis systems typically commit to a single representation of affect: either discrete emotion categories (e.g., happy, sad, angry) or continuous dimensional scores (valence and arousal). Categorical models offer interpretability but discard intensity and blend information; dimensional models capture graded affect but produce coordinates that are difficult to communicate to end users. This project presents a real-time webcam-based affect analysis system that runs both representations concurrently and fuses them under classical psychological structure. A Mini Xception convolutional network trained on FER-2013 performs 7-class expression classification, while a MobileNetV2 regressor trained on AffectNet predicts continuous valence and arousal. Both models execute in parallel per detected face as TensorFlow Lite interpreters, and MediaPipe BlazeFace supplies face detection. An Affect Fusion Engine cross-validates the two model outputs using Russell's Circumplex Model of Affect, maps fused coordinates onto the eight petals of Plutchik's Wheel of Emotions using Mehrabian's empirically measured Pleasure-Arousal-Dominance (PAD) word coordinates as the numeric bridge, and in doing so expands the petal vocabulary into sixteen compound-emotion labels (dyads) and three intensity tiers per petal. The engine additionally emits a per-frame reliability signal derived from cross-representation agreement. A first quantitative evaluation on FER-2013 with FER+ annotator distributions shows the signal is genuine but weak: the conflict score detects classifier errors (AUROC 0.65) and adds a small, statistically reliable gain when combined with softmax confidence (ΔAUROC +0.011), while softmax confidence alone remains the stronger detector (AUROC 0.78); images that trigger a dyad do carry elevated human annotator disagreement (58% vs. 43%), but the specific blend identity is rarely corroborated. The complete pipeline, including a 58K-parameter emotion classifier and a 3.6M-parameter valence-arousal regressor, runs entirely on CPU at a measured median of 20.5 ms per frame for one face (about 49 FPS before capture and rendering) on a 4-core laptop processor, with total model footprint under 14.2 MB.*
 
 **Index Terms** — affective computing, facial expression recognition, basic emotions, valence-arousal, pleasure-arousal-dominance, compound emotions, dyads, microexpressions, emotion classification, TensorFlow Lite, real-time systems, convolutional neural networks
 
@@ -83,12 +83,13 @@ The project assembled its analytical vocabulary from the classical dimensional a
    - disambiguates near-ties (notably Fear/Anger, which are nearly coincident in two dimensions) using the categorical prediction as a tiebreaker,
    - infers a three-tier **intensity label** (mild / basic / intense) from the polar magnitude of the valence-arousal vector,
    - detects **compound emotions (dyads)** from the classifier's softmax distribution, following Plutchik's primary and secondary dyad definitions [11], [12].
-3. A **quantified system description**: per-layer parameter counts, dataset provenance, preprocessing pipelines, all hyperparameters, and TFLite conversion results, verified against the source code.
+3. A **quantified system description**: per-layer parameter counts, dataset provenance, preprocessing pipelines, all hyperparameters, TFLite conversion results, and measured per-component latency, verified against the source code.
 4. A documented account of the **psychometric limits of two-dimensional fusion**: the Fear/Anger collinearity in valence-arousal space [25], [28], its origin in the truncation of PAD's Dominance axis, and exactly which of the sixteen dyads are reachable given the categorical bridge.
+5. A **first quantitative evaluation** of the fusion layer on FER-2013 with FER+ annotator distributions [38], including an out-of-domain EmoNet [34] baseline, with all component accuracy figures re-measured on the exact artifacts in this repository.
 
 ### E. Paper Organization
 
-Section II reviews the psychological frameworks (categorical, dimensional, Plutchik, PAD) and the machine learning lineage. Section III details the system architecture and fusion methodology. Section IV covers implementation. Section V presents footprints and behavior. Section VI discusses limitations and future work, and Section VII concludes.
+Section II reviews the psychological frameworks (categorical, dimensional, Plutchik, PAD) and the machine learning lineage. Section III details the system architecture and fusion methodology. Section IV covers implementation. Section V presents measured latency, expected behavior, a quantitative evaluation, and positioning. Section VI discusses limitations and future work, and Section VII concludes.
 
 ---
 
@@ -172,7 +173,7 @@ Appraisal theories (the component process model [26]) treat an emotion as the ou
 
 ### F. The Machine Learning Lineage
 
-The engineering substrate is deliberately standard. FER-2013 [7] operationalized categorical FER; the mini-XCEPTION of Arriaga et al. [8], an Xception-style [19] depthwise-separable network with residual blocks, made categorical FER real-time on commodity hardware. AffectNet [16] operationalized the dimensional model "in the wild" with both expression labels and continuous valence-arousal annotations, plus baseline regressors. The upstream source of this project's VA checkpoint reports errors comparable to those baselines (RMSE ≈ 0.39 / 0.38); that figure is inherited, not re-measured here. MobileNetV2 [20] supplies the regressor backbone with inverted residuals and linear bottlenecks. BlazeFace [17], distributed through MediaPipe [18], supplies a 225 KB SSD-style short-range face detector. Everything executes under TensorFlow Lite [27].
+The engineering substrate is deliberately standard. FER-2013 [7] operationalized categorical FER; the mini-XCEPTION of Arriaga et al. [8], an Xception-style [19] depthwise-separable network with residual blocks, made categorical FER real-time on commodity hardware. AffectNet [16] operationalized the dimensional model "in the wild" with both expression labels and continuous valence-arousal annotations, plus baseline regressors. The upstream source of this project's VA checkpoint reports errors comparable to those baselines (RMSE ≈ 0.39 / 0.38); that figure is inherited, not re-measured here. The classifier's accuracy is re-measured in Section V-C. MobileNetV2 [20] supplies the regressor backbone with inverted residuals and linear bottlenecks. BlazeFace [17], distributed through MediaPipe [18], supplies a 225 KB SSD-style short-range face detector. Everything executes under TensorFlow Lite [27].
 
 ### G. Closest Prior Work
 
@@ -448,7 +449,7 @@ The unordered pair `{petal(c_1), petal(c_2)}` is looked up against the 16-dyad t
 
 **Reachability.** Because the bridge (Table VIII) can only emit petals from {Anger, Disgust, Fear, Joy, Sadness, Surprise}, exactly 9 of the 16 implemented dyads can ever fire: the primary dyads Awe (Fear+Surprise), Disapproval (Surprise+Sadness), Remorse (Sadness+Disgust), and Contempt (Disgust+Anger), and the secondary dyads Guilt (Joy+Fear), Despair (Fear+Sadness), Unbelief (Surprise+Disgust), Envy (Sadness+Anger), and Pride (Anger+Joy). The other 7 (Love, Submission, Aggressiveness, Optimism, Curiosity, Cynicism, Hope) involve Trust or Anticipation and are unreachable through the categorical bridge. They remain implemented for completeness, and would become reachable if the categorical model were extended to more classes (Section VI).
 
-**Caveat: softmax ambiguity versus blended emotion.** A near-tie between two classes admits two readings. Under the first, the face displays a genuine compound expression; Du et al. [31] and RAF-DB [32] show that such compounds exist as consistent production patterns. Under the second, the tie reflects uncertainty: low resolution, occlusion, pose, or the annotator disagreement that the model absorbed during training [37]–[39]. A single softmax vector cannot distinguish these readings. The reliability gate removes some uncertainty cases (those where valence-arousal contradicts the class), but not all. Dyad outputs should therefore be read as *hypotheses* of a blend, not detections. The question is testable: if the first reading dominates, the classifier's top-2 pairs should agree with the top-2 pairs of human annotator distributions on the same images, which FER+ [38] provides for FER-2013. This evaluation is planned (Section VI).
+**Caveat: softmax ambiguity versus blended emotion.** A near-tie between two classes admits two readings. Under the first, the face displays a genuine compound expression; Du et al. [31] and RAF-DB [32] show that such compounds exist as consistent production patterns. Under the second, the tie reflects uncertainty: low resolution, occlusion, pose, or the annotator disagreement that the model absorbed during training [37]–[39]. A single softmax vector cannot distinguish these readings. The reliability gate removes some uncertainty cases (those where valence-arousal contradicts the class), but not all. Dyad outputs should therefore be read as *hypotheses* of a blend, not detections. The question is testable: if the first reading dominates, the classifier's top-2 pairs should agree with the top-2 pairs of human annotator distributions on the same images, which FER+ [38] provides for FER-2013. This evaluation is carried out in Section V-C, which supports the ambiguity half of the reading and rejects the precise-blend half.
 
 #### 7) Output vocabulary: sixteen from eight
 
@@ -580,18 +581,95 @@ Two results follow. First, the full pipeline runs at a median of 20.5 ms per fra
 
 The emotion model's large reduction reflects HDF5's storage of architecture metadata, optimizer state, and training config, all stripped by the FlatBuffer; the VA weights file was already lean, so its reduction is marginal.
 
-### C. Expected Fusion Behavior
+### C. Quantitative Evaluation on FER-2013
 
-The behaviors below are derived from the engine's logic and the worked traces of Table X. They describe what the design produces, not measurements on labeled data; quantitative evaluation is future work (Section VI).
+All fusion-layer results in this section are produced by `eval/evaluate_fer.py` on the FER-2013 challenge splits [7] with the FER+ annotator distributions [38] (3,517 of 3,589 PrivateTest images carry valid FER+ votes). Every image is treated as an independent still: the EMA is reset per image, since a still image has no temporal context. Every quantity that is fitted (per-class centroids in the regressor's output space, logistic combination weights) is fitted on PublicTest only, and every number reported below is computed on PrivateTest. Two protocol caveats apply. First, the upstream training script selects checkpoints on PublicTest and PrivateTest jointly [8], so PrivateTest results may be slightly optimistic for the classifier. Second, the VA branch is trained on color AffectNet images while FER-2013 is grayscale, so all VA outputs here come from a domain-shifted input (grayscale replicated to three channels), which affects the conflict score equally.
+
+#### 1) Classifier re-measurement
+
+The shipped emotion model reaches **65.9% accuracy** on PrivateTest (95% CI [64.4%, 67.5%]), with macro-F1 0.643 and a 15-bin expected calibration error of 0.057, on 3,589 images. This matches the ~66% figure reported by the architecture's source [8]. Per-class recall spans 42.0% (Fear) to 87.7% (Happy); Disgust recall (60.0%) is unreliable at its sample size (55 test images). PublicTest accuracy is 64.5%.
+
+#### 2) The conflict score as an error detector
+
+**TABLE XV**
+**Error-Detection AUROC and AURC on PrivateTest (higher AUROC = better error ranking)**
+
+| Detector | AUROC | 95% CI | AURC |
+|---|---|---|---|
+| Conflict score (shipped centroids) | 0.648 | [0.629, 0.667] | 0.259 |
+| Conflict score (PublicTest-fitted centroids) | 0.619 | [0.599, 0.638] | 0.282 |
+| − max softmax (MSP) | 0.782 | [0.766, 0.796] | 0.153 |
+| Entropy | 0.776 | [0.761, 0.791] | 0.156 |
+| − top-2 margin | 0.777 | [0.762, 0.793] | 0.155 |
+| Logistic (MSP + fitted CS) | 0.789 | [0.776, 0.805] | 0.155 |
+| Logistic (MSP + shipped CS) | 0.793 | — | — |
+| Oracle | 1.000 | — | 0.066 |
+
+Four findings. First, **the reliability signal is genuine but weak standalone**: the conflict score ranks errors at 0.648 AUROC, well above chance, but far below the classifier's own max-softmax confidence (0.782); the same holds for the risk-coverage area (AURC 0.259 vs. 0.153, oracle 0.066). Second, the signal is **complementary to confidence**: the conflict score correlates only weakly with MSP (Spearman ρ = −0.27) and retains AUROC 0.58–0.63 *within* every MSP stratum, including 0.63 among the most confident predictions (MSP > 0.9, error rate 7.4%, n = 1,111). Third, a two-feature logistic combination on PublicTest yields a **small but statistically reliable gain** over MSP alone: ΔAUROC = +0.011 with the shipped centroids (bootstrap CI [0.006, 0.016]) and +0.007 with fitted centroids ([0.001, 0.013]). Fourth, **as a hard gate the score is dominated by confidence**: at τ_CS = 0.5 (86% coverage) the reliable subset is 69.0% accurate vs. 46.8% for flagged images, but simply keeping the most-confident 86% of images by MSP yields 70.7%. As an overlay cue the asterisk is honest; as an abstention policy it should not replace confidence.
+
+An incidental observation: the shipped hand-estimated centroids detect errors better than centroids fitted on PublicTest (0.648 vs. 0.619). The fitted centroids collapse in the grayscale domain (e.g., Fear at (−0.14, +0.26), Sad at (−0.22, +0.06), Neutral at (−0.05, +0.07) become nearly collinear), shrinking the distances the score relies on; the shipped, more spread table separates errors better. This is a property of the domain shift, not evidence for the shipped values' accuracy.
+
+#### 3) Dyads versus annotator ambiguity (FER+)
+
+**TABLE XVI**
+**Dyad Flags vs. FER+ Human Labels (Default Thresholds: 187 of 3,517 Images)**
+
+| Quantity | Dyad-fired | Not fired |
+|---|---|---|
+| Annotator split rate (runner-up class ≥ 2 of 10 votes) | 57.8% | 42.6% |
+| Model top-2 classes both receive ≥ 2 annotator votes | 8.6% | 17.0% |
+| Pair-support permutation baseline (mean / p95) | 2.9% / 4.3% | — |
+
+Model entropy also correlates moderately with annotator entropy over all valid images (Spearman ρ = 0.38), as does MSP with the annotators' majority share (ρ = 0.39). Where the human top-2 is well defined (second-place votes ≥ 2 and strictly above third, 94 images), the model's top-2 pair matches the annotators' in 8.5% of cases.
+
+The evaluation splits the dyad hypothesis cleanly in half:
+
+- **Supported (ambiguity detection).** Images that trigger a dyad are significantly more ambiguous to humans: 57.8% of them have a runner-up class with at least 2 of 10 votes, vs. 42.6% for the rest. The fire condition is a genuine, if coarse, ambiguity detector.
+- **Rejected (blend identification).** The *identity* of the inferred blend almost never matches the humans' disagreement. Pair support on fired images (8.6%) is below even the not-fired rate (17.0%) and only moderately above the permutation baseline; exact top-2 agreement is 8.5%. The classifier's near-ties mostly reflect model confusion at FER-2013's resolution and annotation noise [37], [38], not a human-perceivable mixture, and when humans do split, they rarely split the same way the model does.
+
+**TABLE XVII**
+**Dyad-Threshold Ablation (Selected Rows)**
+
+| p_max | gap | Fires | Fire rate | Split fired / not | Pair support fired / perm. |
+|---|---|---|---|---|---|
+| 0.4 | 0.05 | 41 | 1.2% | 65.9% / 43.2% | 9.8% / 3.0% |
+| 0.4 | 0.25 | 105 | 3.0% | 57.1% / 43.0% | 4.8% / 2.9% |
+| 0.5 | 0.05 | 73 | 2.1% | 61.6% / 43.0% | 12.3% / 3.3% |
+| 0.5 | 0.15 (default) | 187 | 5.3% | 57.8% / 42.6% | 8.6% / 2.9% |
+| 0.5 | 0.25 | 248 | 7.1% | 58.9% / 42.2% | 8.1% / 3.0% |
+| 0.6 | 0.05 | 75 | 2.1% | 61.3% / 43.0% | 12.0% / 3.2% |
+| 0.6 | 0.25 | 310 | 8.8% | 61.6% / 41.7% | 10.6% / 3.5% |
+
+No threshold setting rescues blend identification: stricter settings raise pair support (up to ~12%) only by shrinking the sample to a few dozen images. At the default thresholds the fired set is dominated by Despair (Fear+Sadness, 67) and Envy (Sadness+Anger, 66), i.e., the classifier's confusion structure around Sad, with Awe (Fear+Surprise, 24) a distant third.
+
+#### 4) EmoNet baseline
+
+**TABLE XVIII**
+**This System vs. Unmodified EmoNet-8 on FER-2013 PrivateTest**
+
+| Metric | This system | EmoNet-8 (unmodified) |
+|---|---|---|
+| Accuracy | 65.9% | 43.7% [42.2, 45.3] |
+| Macro-F1 | 0.643 | 0.373 |
+| ECE (15-bin) | 0.057 | 0.414 |
+| Best own-error AUROC | 0.782 (−MSP) | 0.645 (entropy) |
+| AUROC of this system's errors, using the other's VA | 0.535 [0.516, 0.556] | — |
+| VA Pearson r (valence / arousal) | — | 0.700 / 0.732 |
+
+EmoNet reports 75% accuracy on its AffectNet test set [34]; here it collapses to 43.7% with severe miscalibration (ECE 0.41). The comparison is deliberately out-of-domain for *both* branches (48-px grayscale upsampled to 256 px), so it is a caution about cross-domain claims rather than a head-to-head. Two usable facts survive: EmoNet's valence and arousal correlate moderately with this system's VA branch (r = 0.70 / 0.73), an independent sanity check on the regressor; and conflict scores computed with EmoNet's VA detect this system's errors at only 0.535, weaker than with its own VA, so the disagreement signal does not transfer across regressors.
+
+### D. Expected Fusion Behavior
+
+The behaviors below are derived from the engine's logic and the worked traces of Table X. They describe what the design produces rather than measurements; the disagreement and dyad mechanisms are evaluated quantitatively in Section V-C.
 
 - **Stable trajectories.** Eq. 2's EMA (α = 0.3) removes most per-frame flicker of the raw regressor; petal colors transition smoothly rather than strobing.
 - **Self-flagged disagreement.** When the classifier labels a face "Sad" while the regressor reports positive valence, `CS > τ_CS` in Eq. 3, the overlay dims and appends an asterisk, and dyad detection is suppressed (Eq. 7's reliability gate). The system degrades gracefully by reporting disagreement rather than committing to a wrong compound label.
 - **Intensity enrichment.** Sustained high-magnitude joy (r ≥ 0.66 by Eq. 5) upgrades the label from "Happy" to "Ecstasy"; mild expressions (r < 0.33) produce tier-appropriate words ("Serenity", "Pensiveness") from Table VII.
-- **Dyads.** Blended expressions whose top-2 softmax probabilities satisfy Eq. 7 surface compound labels, e.g., simultaneous Fear/Surprise mass → "Awe", consistent with Plutchik's compositional semantics [11], [12], [25].
+- **Dyads.** Blended expressions whose top-2 softmax probabilities satisfy Eq. 7 surface compound labels, e.g., simultaneous Fear/Surprise mass → "Awe", consistent with Plutchik's compositional semantics [11], [12], [25]; on FER-2013, flagged images do carry elevated human ambiguity, but the specific blend is rarely corroborated (Section V-C).
 
-### D. Positioning Relative to Related Systems
+### E. Positioning Relative to Related Systems
 
-The source of the categorical architecture reports ~66% FER-2013 accuracy [8], and the upstream source of the VA checkpoint reports RMSE of ~0.39/0.38, comparable to the AffectNet baselines [16]. Neither figure has been re-measured in this work. Those figures bound the fused system's component accuracy, since fusion is a post-hoc rule layer and neither branch is fine-tuned for it. The intended value added is **representational**: intensity tiers, compound labels, and a reliability signal that neither branch produces alone, at negligible additional compute (the fusion engine is O(1) numpy per frame). Relative to joint models such as EmoNet [34], this system is expected to be less accurate per representation. Its distinguishing properties are the explicit disagreement signal and the psychologically structured label output, and both remain to be validated quantitatively.
+The categorical branch, re-measured here on FER-2013 PrivateTest, reaches 65.9% (Section V-C), matching the ~66% reported by its source [8]. The VA checkpoint's RMSE (~0.39/0.38, comparable to the AffectNet baselines [16]) remains an inherited figure. The fused system's intended value added is **representational**: intensity tiers, compound labels, and a reliability signal, at negligible additional compute (O(1) numpy per frame). The evaluation tempers this: the reliability signal is genuine but weaker than softmax confidence as a standalone detector, adding a small reliable gain only in combination (ΔAUROC +0.011), and the dyad mechanism tracks human ambiguity without identifying the blend (Section V-C). Relative to joint models such as EmoNet [34], the fair comparison remains open: the out-of-domain run in Table XVIII is a caution about cross-domain evaluation, not a verdict.
 
 ---
 
@@ -603,14 +681,14 @@ The source of the categorical architecture reports ~66% FER-2013 accuracy [8], a
 4. **Dataset noise and bias.** FER-2013 carries well-documented label noise and class imbalance (Happy overrepresented, Disgust scarce) [7]; AffectNet annotations are subjective with imperfect inter-rater agreement [16]. Both upstream artifacts are consumed as-is, without demographic audit, so the system inherits whatever biases they encode.
 5. **Single-face EMA state.** The engine keeps one EMA pair; with multiple simultaneous faces, smoothing state may blend across identities when detection order changes. Per-track state keyed on face identity (tracking-by-detection, using BlazeFace landmarks for cheap association) is straightforward future work.
 6. **Concurrency gives no speedup.** The thread pool releases the GIL during `invoke()` [27], but with a 1.2 ms emotion branch there is almost nothing to overlap (Table XIII). Gains would only appear with many faces per frame, which would call for batched inference or process pools.
-7. **No quantitative fusion evaluation yet.** The fusion layer is described, not measured. Three evaluations are implemented in `eval/evaluate_fer.py` and await the FER-2013 data. (a) *Conflict score as an error detector*: on FER-2013 PrivateTest images, the AUROC of the conflict score for predicting classifier misclassification, against max-softmax, entropy, and top-2 margin baselines, using both the shipped centroids and centroids fitted on PublicTest. (b) *Softmax ambiguity versus annotator ambiguity*: the agreement between the classifier's top-2 pairs and the top-2 pairs of the FER+ annotator distributions [38], against a permutation baseline. (c) *Threshold ablations* over τ_CS and the dyad thresholds. An unmodified EmoNet [34] baseline is implemented in `eval/emonet_baseline.py`. Evaluating dyads against true compound labels [31], [32] would further strengthen the work.
-8. **Inherited metrics.** The ~66% classifier accuracy and ~0.39/0.38 VA RMSE are reported by upstream sources and have not been re-measured on the exact artifacts in this repository.
+7. **Evaluation scope.** The evaluation of Section V-C uses FER-2013 still images: no video, no active EMA, and a grayscale domain for the color-trained VA branch. It does not evaluate dyads against true compound-expression labels [31], [32], does not touch AffectNet (so VA accuracy and the hand-estimated centroids remain unvalidated), and the EmoNet comparison is outside the baseline's domain. The natural follow-ups, in order of value: compound-labeled corpora (RAF-DB compound [32], [33]), VA evaluation on AffectNet with recomputed per-category centroids, and video evaluation with the EMA active.
+8. **Inherited metrics.** The ~0.39/0.38 VA RMSE is reported by the upstream checkpoint source and has not been re-measured; the classifier's accuracy has (Section V-C).
 
 ---
 
 ## VII. Conclusion
 
-This project set out to take faces as seriously as they deserve: not as seven mutually exclusive checkboxes, but as a dense, continuous, combinatorial signal sitting on top of a universal low-dimensional structure. The engineering expression of that stance is a pipeline that runs a categorical classifier (Mini Xception, FER-2013) and a dimensional regressor (MobileNetV2, AffectNet) concurrently per face, and fuses them through classical psychological structure: Russell's circumplex for geometric consistency checking [10], Plutchik's wheel for intensity and compound-emotion semantics [11], [12], and published PAD word ratings as the metric bridge between continuous geometry and discrete labels [13], [28]. The resulting system reports not just *what* emotion a face shows, but *how strongly* (intensity tiers), *how reliably* (conflict score), and, when the evidence supports it, *what blend* (dyads): a 41-label vocabulary produced from 8 petals, sixteen of which (8 basic plus 8 primary dyads) are the theory's own arithmetic. Total model cost is 14.2 MB, and the full pipeline runs at a median of 20.5 ms per frame for one face on a 4-core laptop CPU (Table XIII). The fusion layer's claimed benefits, the reliability signal above all, still await quantitative validation (Section VI). The components are open artifacts in this repository, and the engine's clean dataclass contract makes the natural next steps concrete: 3-D PAD regression to restore the missing Dominance axis, per-face temporal state, and a formal evaluation of fusion quality.
+This project set out to take faces as seriously as they deserve: not as seven mutually exclusive checkboxes, but as a dense, continuous, combinatorial signal sitting on top of a universal low-dimensional structure. The engineering expression of that stance is a pipeline that runs a categorical classifier (Mini Xception, FER-2013) and a dimensional regressor (MobileNetV2, AffectNet) concurrently per face, and fuses them through classical psychological structure: Russell's circumplex for geometric consistency checking [10], Plutchik's wheel for intensity and compound-emotion semantics [11], [12], and published PAD word ratings as the metric bridge between continuous geometry and discrete labels [13], [28]. The resulting system reports not just *what* emotion a face shows, but *how strongly* (intensity tiers), *how reliably* (conflict score), and, when the evidence supports it, *what blend* (dyads): a 41-label vocabulary produced from 8 petals, sixteen of which (8 basic plus 8 primary dyads) are the theory's own arithmetic. Total model cost is 14.2 MB, and the full pipeline runs at a median of 20.5 ms per frame for one face on a 4-core laptop CPU (Table XIII). The first quantitative evaluation (Section V-C) tempers the fusion layer's claims: the reliability signal is genuine but dominated by softmax confidence (0.648 vs. 0.782 AUROC, +0.011 in combination), and dyad flags track human ambiguity (58% vs. 43% annotator splits) without identifying the blend. The system's honest contribution is therefore a psychologically structured presentation layer over measured components, plus a concrete template, three-dimensional PAD output, compound-labeled training categories, and temporal evaluation, for making the stronger claims true. The components are open artifacts in this repository, and the engine's clean dataclass contract keeps those next steps cheap: 3-D PAD regression to restore the missing Dominance axis, per-face temporal state, and evaluation on compound-labeled data.
 
 ---
 
