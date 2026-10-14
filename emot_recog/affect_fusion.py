@@ -17,8 +17,21 @@ PLUTCHIK_PETALS = {
     'Anticipation': {'mild': 'Interest',     'basic': 'Anticipation', 'intense': 'Vigilance',   'color': (0, 165, 255)},
 }
 
-# VA centroids from Mehrabian PAD model (1980/1995), [-1, 1] scale
-# These are empirically validated, not hand-tuned
+# VA centroids on [-1, 1]: (P, A) projections of PAD word ratings.
+# Source: Russell & Mehrabian (1977), "Evidence for a three-factor theory of
+# emotions", J. Res. Pers. 11:273-294 (Table 4, via Becker-Asano 2008 thesis,
+# Table 2.4), and Mehrabian's PAD emotion-scale terms (kaaj.com).
+# These are ratings of emotion WORDS, not facial measurements.
+#   Joy          = 'joyful'    (.76, .48, D .35)   exact
+#   Trust        = no source located (unsourced)
+#   Fear         = 'fearful'   (-.64, .60, D -.43) exact
+#   Surprise     = 'surprised' published (.40, .67, D -.13); valence 0.14 here
+#                  does NOT match the source
+#   Sadness      = 'sad'       (-.63, -.27, D -.33) exact
+#   Disgust      = 'disgusted' (-.60, .35, D .11)  exact
+#   Anger        = 'angry'     (-.51, .59, D .25)  exact
+#   Anticipation = 'curious'   (.22, .62, D -.01)  exact, substitute word
+# Dominance (D) is dropped; it is what separates Fear from Anger.
 PLUTCHIK_VA = {
     'Joy':          ( 0.76,  0.48),
     'Trust':        ( 0.52,  0.20),
@@ -30,8 +43,11 @@ PLUTCHIK_VA = {
     'Anticipation': ( 0.22,  0.62),
 }
 
-# Russell sanity check centroids from AffectNet (Mollahosseini et al. 2017)
-# Keyed by Xception class index
+# Russell sanity-check centroids, intended to approximate per-category mean
+# VA in AffectNet (Mollahosseini et al. 2017). AffectNet does not publish
+# per-category means and no source for these numbers was located: treat as
+# hand-estimated until recomputed from AffectNet annotation files.
+# Keyed by Xception class index (FER-2013 label order)
 RUSSELL_CENTROIDS = {
     0: ('Angry',    -0.45,  0.31),
     1: ('Disgust',  -0.48,  0.22),
