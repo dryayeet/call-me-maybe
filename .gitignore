@@ -18,4 +18,5 @@ fer2013*.csv
 
 # generated outputs
 *.avi
+*.docx
 eval/results/smoke_*
